@@ -1,0 +1,156 @@
+
+<div class="wrap">
+  <header class="mast">
+    <div class="mark">你</div>
+    <h1>Conversation Depth Gauge</h1>
+    <nav class="nav" id="nav">
+      <button data-v="setup" aria-pressed="true">Decks</button>
+      <button data-v="browse" aria-pressed="false">Browse</button>
+      <button data-v="saved" aria-pressed="false">Saved</button>
+    </nav>
+  </header>
+
+  <!-- ============ SETUP ============ -->
+  <section id="v-setup" style="display:flex;flex-direction:column;gap:14px">
+    <p class="tagline">4,228 questions in English and Chinese, ranked from small talk to the
+      things you only ask someone you trust. Pick where to start — the deck heats up one rung at a time.</p>
+    <div class="decks" id="decks"></div>
+
+    <div class="panel">
+      <h3>Theme <span class="lbl" style="font-weight:500" id="skinname">Hazard</span></h3>
+      <div class="skins" id="skins"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Show me <span class="lbl" style="font-weight:500">tap the card to flip</span></h3>
+      <div class="seg" id="mode">
+        <button data-m="both" aria-pressed="true">Both</button>
+        <button data-m="en" aria-pressed="false">English first</button>
+        <button data-m="zh" aria-pressed="false">中文 first</button>
+      </div>
+      <div class="row" style="margin-top:4px">
+        <div><b>Pinyin</b><p>Tone-marked romanization under the Chinese.</p></div>
+        <button class="sw" id="sw-py" aria-pressed="true" aria-label="Toggle pinyin"></button>
+      </div>
+      <div class="row">
+        <div><b>Grammar pattern</b><p>The frame each question is built on, for drilling.</p></div>
+        <button class="sw" id="sw-fr" aria-pressed="true" aria-label="Toggle grammar pattern"></button>
+      </div>
+      <div class="row">
+        <div><b>Turn taking</b><p>Alternate who answers first, so it stays a trade.</p></div>
+        <button class="sw" id="sw-tn" aria-pressed="true" aria-label="Toggle turn taking"></button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Mute topics <span class="lbl" style="font-weight:500"><span id="mutedn">0</span> muted</span></h3>
+      <div class="topics" id="topics"></div>
+    </div>
+
+    <p class="note">
+      <b>How it works.</b> Every question carries a sensitivity from 1 to 5 and a stage from
+      icebreaker to intimate. You start cold. After each answer you say <span class="k">warmer</span> or
+      <span class="k">cooler</span> and the deck moves exactly one rung — never further.
+      Crossing into sensitivity 4 needs both of you to agree out loud.<br><br>
+      <b>On a phone:</b> swipe the card right for warmer, left for cooler, up to skip.
+      <b>On a keyboard:</b> <span class="k">←</span> <span class="k">→</span> to change depth,
+      <span class="k">space</span> for the next question, <span class="k">S</span> to save.
+    </p>
+  </section>
+
+  <!-- ============ SESSION ============ -->
+  <section id="v-session" class="hidden" style="flex-direction:column;gap:14px">
+    <div class="gauge">
+      <div class="gauge-head">
+        <strong id="deck-name">Coffee chat</strong>
+        <span class="lbl" id="deck-rule"></span>
+      </div>
+      <div class="rungs" id="rungs"></div>
+    </div>
+
+    <button class="turn" id="turn">
+      <span class="pip"></span><b id="turn-t">You answer first</b><span>tap to swap</span>
+    </button>
+
+    <article class="card" id="card">
+      <div class="card-top" id="card-top"></div>
+      <div class="q-en" id="q-en"></div>
+      <button class="reveal hidden" id="reveal">Reveal the other language</button>
+      <div id="zh-block">
+        <div class="q-zh" id="q-zh"></div>
+        <div class="q-py" id="q-py"></div>
+      </div>
+      <div class="q-foot">
+        <code id="q-frame"></code>
+        <div class="foot-acts">
+          <span class="q-id" id="q-id"></span>
+          <button class="mini" id="b-save" aria-pressed="false" aria-label="Save this question" title="Save (S)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          </button>
+          <button class="mini" id="b-copy" aria-label="Copy this question" title="Copy">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>
+      </div>
+    </article>
+
+    <div class="controls">
+      <button class="ctl cool" id="b-cool"><b>← Cooler</b><small>Back off a rung</small></button>
+      <button class="ctl" id="b-skip"><b>Skip</b><small>Not this one</small></button>
+      <button class="ctl warm" id="b-warm"><b>Warmer →</b><small>One step deeper</small></button>
+    </div>
+    <button class="next" id="b-next">Next question, same depth</button>
+    <div class="stats">
+      <span>Asked <b id="s-asked">0</b></span>
+      <span>Depth <b id="s-depth">1</b>/5</span>
+      <span><b id="s-left">0</b> left here</span>
+      <span>Saved <b id="s-saved">0</b></span>
+    </div>
+    <button class="ghost" id="b-end">End session</button>
+  </section>
+
+  <!-- ============ BROWSE ============ -->
+  <section id="v-browse" class="hidden" style="flex-direction:column;gap:12px">
+    <input class="search" id="q" type="search" placeholder="Search English, 中文, or pinyin…" autocomplete="off">
+    <div class="filters" id="f-sens"><span class="lbl">Sensitivity</span></div>
+    <div class="filters" id="f-stage"><span class="lbl">Stage</span></div>
+    <div class="lbl" id="hitcount">4,228 questions</div>
+    <div class="hits" id="hits"></div>
+  </section>
+
+  <!-- ============ SAVED ============ -->
+  <section id="v-saved" class="hidden" style="flex-direction:column;gap:12px">
+    <div class="lbl" id="savedcount">Nothing saved yet</div>
+    <div class="hits" id="savedlist"></div>
+  </section>
+</div>
+
+<dialog id="gate">
+  <form method="dialog" class="gate">
+    <div class="hazard"></div>
+    <div class="gate-body">
+      <span class="lbl" style="color:var(--acc)">Consent check</span>
+      <h2 id="gate-h">This is where it gets personal</h2>
+      <p id="gate-p"></p>
+      <p class="fine">Say it out loud to each other before you tap through. Either of you can say
+        no and nothing is lost — you just stay at this depth.</p>
+      <div class="acts">
+        <button class="no" value="no" type="submit">Stay here</button>
+        <button class="go" value="yes" type="submit">We're both in</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="recap">
+  <form method="dialog" class="gate">
+    <div class="hazard"></div>
+    <div class="gate-body">
+      <span class="lbl" style="color:var(--acc)">Session</span>
+      <h2 id="recap-h">That was a good run</h2>
+      <div class="recap" id="recap-body"></div>
+      <div class="acts"><button class="go" value="ok" type="submit">Back to decks</button></div>
+    </div>
+  </form>
+</dialog>
+

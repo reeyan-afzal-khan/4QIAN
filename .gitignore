@@ -1,0 +1,19 @@
+.claude/
+node_modules/
+desktop/node_modules/
+desktop/www/
+release/
+extracted/
+tools/
+android/www/
+android/local.properties
+android/.gradle/
+android/build/
+android/app/build/
+android/capacitor-cordova-android-plugins/
+.DS_Store
+
+# Signing material. Losing keys/*.jks means never shipping an update to
+# anyone who installed a build signed with it — back it up somewhere safe.
+android/keys/
+android/keystore.properties

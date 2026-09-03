@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">4QIAN</string>
+    <string name="title_activity_main">4QIAN</string>
+    <string name="package_name">com.fourqian.app</string>
+    <string name="custom_url_scheme">com.fourqian.app</string>
+</resources>

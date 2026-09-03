@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#08080A">
+<meta name="description" content="4,228 bilingual conversation questions, ranked from small talk to the things you only ask someone you trust — with a dashboard that tracks every question you ask.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<title>4QIAN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Archivo:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Serif+SC:wght@400;600&display=swap">
+<link rel="stylesheet" href="./styles.css">
+
+<script>
+/* Stamp the saved theme before first paint, so a light palette does not
+   flash the default dark one while the deck data parses. */
+try{ var _s = localStorage.getItem("4qian.v1") || localStorage.getItem("cdg.v3");
+     var _k = JSON.parse(_s||"{}").skin;
+     if(_k && _k!=="hazard") document.documentElement.dataset.skin = _k; }catch(e){}
+
+/* Visible failure reporting. Installed first so it survives a parse error in
+   the main script below, which would otherwise leave a blank page. */
+window.boom = function(what, detail){
+  var host = document.body || document.documentElement;
+  if(!host) return;
+  var el = document.getElementById("boom");
+  if(!el){ el = document.createElement("pre"); el.id = "boom"; host.appendChild(el); }
+  var n = "not loaded";
+  try{ n = (window.DATA && window.DATA.q) ? window.DATA.q.length + " questions" : n; }catch(e){}
+  var txt = ["⚠ " + what, "", (detail || ""), "",
+             "url: " + location.href,
+             "ua: " + navigator.userAgent,
+             "viewport: " + innerWidth + "x" + innerHeight + " dpr" + (window.devicePixelRatio || 1),
+             "data: " + n].join("\n");
+  el.textContent = txt;
+  var btn = document.createElement("button");
+  btn.textContent = "Copy this report";
+  btn.onclick = function(){
+    try{ navigator.clipboard.writeText(txt); btn.textContent = "Copied"; }
+    catch(e){ btn.textContent = "Select the text above and copy it"; }
+  };
+  el.appendChild(btn);
+};
+addEventListener("error", function(e){
+  var where = e.filename ? ("\n" + e.filename + ":" + e.lineno) : "";
+  window.boom("Something failed to run.", (e.message || e.type) + where);
+});
+addEventListener("unhandledrejection", function(e){
+  window.boom("A background task failed.", String(e.reason));
+});
+</script>
+</head>
+<body>
+<div class="wrap">
+  <header class="mast">
+    <div class="mark">你</div>
+    <h1>4QIAN</h1>
+  </header>
+  <nav class="navrow" id="nav">
+    <button data-v="setup" aria-pressed="true">Decks</button>
+    <button data-v="dash" aria-pressed="false">Dashboard</button>
+    <button data-v="browse" aria-pressed="false">Browse</button>
+    <button data-v="saved" aria-pressed="false">Saved</button>
+  </nav>
+
+  <!-- ============ SETUP ============ -->
+  <section id="v-setup" style="display:flex;flex-direction:column;gap:14px">
+    <p class="tagline">4,228 questions in English and Chinese, ranked from small talk to the
+      things you only ask someone you trust. Pick where to start — the deck heats up one rung at a time.</p>
+    <div class="decks" id="decks"></div>
+
+    <div class="panel">
+      <h3>Theme <span class="lbl" style="font-weight:500" id="skinname">Hazard</span></h3>
+      <div class="skins" id="skins"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Show me <span class="lbl" style="font-weight:500">tap the card to flip</span></h3>
+      <div class="seg" id="mode">
+        <button data-m="both" aria-pressed="true">Both</button>
+        <button data-m="en" aria-pressed="false">English first</button>
+        <button data-m="zh" aria-pressed="false">中文 first</button>
+      </div>
+      <div class="row" style="margin-top:4px">
+        <div><b>Pinyin</b><p>Tone-marked romanization under the Chinese.</p></div>
+        <button class="sw" id="sw-py" aria-pressed="true" aria-label="Toggle pinyin"></button>
+      </div>
+      <div class="row">
+        <div><b>Grammar pattern</b><p>The frame each question is built on, for drilling.</p></div>
+        <button class="sw" id="sw-fr" aria-pressed="true" aria-label="Toggle grammar pattern"></button>
+      </div>
+      <div class="row">
+        <div><b>Frequency score</b><p>How common the question is in real conversation, 0–100.</p></div>
+        <button class="sw" id="sw-sc" aria-pressed="true" aria-label="Toggle frequency score"></button>
+      </div>
+      <div class="row">
+        <div><b>Turn taking</b><p>Alternate who answers first, so it stays a trade.</p></div>
+        <button class="sw" id="sw-tn" aria-pressed="true" aria-label="Toggle turn taking"></button>
+      </div>
+      <div class="row">
+        <div><b>Track my questions</b><p>Record what you ask, so the dashboard has something to show.</p></div>
+        <button class="sw" id="sw-tr" aria-pressed="true" aria-label="Toggle tracking"></button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Mute topics <span class="lbl" style="font-weight:500"><span id="mutedn">0</span> muted</span></h3>
+      <div class="topics" id="topics"></div>
+    </div>
+
+    <p class="note">
+      <b>How it works.</b> Every question carries a sensitivity from 1 to 5 and a stage from
+      icebreaker to intimate. You start cold. After each answer you say <span class="k">warmer</span> or
+      <span class="k">cooler</span> and the deck moves exactly one rung — never further.
+      Crossing into sensitivity 4 needs both of you to agree out loud.<br><br>
+      <b>On a phone:</b> swipe the card right for warmer, left for cooler, up to skip.
+      <b>On a keyboard:</b> <span class="k">←</span> <span class="k">→</span> to change depth,
+      <span class="k">space</span> for the next question, <span class="k">S</span> to save.
+    </p>
+  </section>
+
+  <!-- ============ SESSION ============ -->
+  <section id="v-session" class="hidden" style="flex-direction:column;gap:14px">
+    <div class="gauge">
+      <div class="gauge-head">
+        <strong id="deck-name">Coffee chat</strong>
+        <span class="lbl" id="deck-rule"></span>
+      </div>
+      <div class="rungs" id="rungs"></div>
+    </div>
+
+    <button class="turn" id="turn">
+      <span class="pip"></span><b id="turn-t">You answer first</b><span>tap to swap</span>
+    </button>
+
+    <article class="card" id="card">
+      <div class="card-top" id="card-top"></div>
+      <div class="q-en" id="q-en"></div>
+      <button class="reveal hidden" id="reveal">Reveal the other language</button>
+      <div id="zh-block">
+        <div class="q-zh" id="q-zh"></div>
+        <div class="q-py" id="q-py"></div>
+      </div>
+      <div class="q-foot">
+        <code id="q-frame"></code>
+        <div class="foot-acts">
+          <span class="q-id" id="q-id"></span>
+          <button class="mini" id="b-save" aria-pressed="false" aria-label="Save this question" title="Save (S)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          </button>
+          <button class="mini" id="b-copy" aria-label="Copy this question" title="Copy">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>
+      </div>
+    </article>
+
+    <div class="controls">
+      <button class="ctl cool" id="b-cool"><b>← Cooler</b><small>Back off a rung</small></button>
+      <button class="ctl" id="b-skip"><b>Skip</b><small>Not this one</small></button>
+      <button class="ctl warm" id="b-warm"><b>Warmer →</b><small>One step deeper</small></button>
+    </div>
+    <button class="next" id="b-next">Next question, same depth</button>
+    <div class="stats">
+      <span>Asked <b id="s-asked">0</b></span>
+      <span>Depth <b id="s-depth">1</b>/5</span>
+      <span><b id="s-left">0</b> left here</span>
+      <span>Saved <b id="s-saved">0</b></span>
+    </div>
+    <button class="ghost" id="b-end">End session</button>
+  </section>
+
+  <!-- ============ DASHBOARD ============ -->
+  <section id="v-dash" class="hidden dash">
+    <div class="dash-h">
+      <h2>Your record</h2>
+      <span class="lbl" id="dash-since">no sessions yet</span>
+    </div>
+
+    <div class="kpis" id="kpis"></div>
+
+    <!-- activity ------------------------------------------------ -->
+    <div class="panel">
+      <h3>Activity <span class="lbl" style="font-weight:500" id="heat-sum"></span></h3>
+      <p class="pmeta">Questions asked per day over the last 26 weeks.</p>
+      <div class="heat" id="heat"></div>
+      <div class="heat-key">
+        <span>less</span><i style="background:var(--surface-3)"></i>
+        <i style="background:var(--acc);opacity:.35"></i>
+        <i style="background:var(--acc);opacity:.65"></i>
+        <i style="background:var(--acc)"></i><span>more</span>
+      </div>
+    </div>
+
+    <!-- high frequency ------------------------------------------ -->
+    <div class="panel">
+      <h3>High-frequency questions</h3>
+      <div class="seg mini-seg" id="freq-mode">
+        <button data-f="corpus" aria-pressed="true">Most common</button>
+        <button data-f="mine" aria-pressed="false">Your most asked</button>
+      </div>
+      <div id="freq-body" style="margin-top:12px"></div>
+    </div>
+
+    <!-- coverage ------------------------------------------------- -->
+    <div class="panel">
+      <h3>Frequency-band coverage <span class="lbl" style="font-weight:500" id="band-sum"></span></h3>
+      <p class="pmeta">How much of each band of the corpus you have worked through. The
+        90–100 band is the core small-talk vocabulary; clearing it is the fastest win.</p>
+      <div class="blist" id="bands"></div>
+    </div>
+
+    <div class="panel">
+      <h3>What you actually ask</h3>
+      <p class="pmeta">Depth and sensitivity of every question you have been through.</p>
+      <div class="lbl" style="margin-bottom:2px">By stage</div>
+      <div class="cols" id="c-stage"></div>
+      <div class="lbl" style="margin:16px 0 2px">By sensitivity</div>
+      <div class="cols" id="c-sens"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Topic coverage <span class="lbl" style="font-weight:500" id="topic-sum"></span></h3>
+      <p class="pmeta">Every category, ranked by how much of it you have covered.</p>
+      <div class="blist" id="cats"></div>
+      <button class="ghost" id="cats-more" style="margin-top:10px">Show all 30 topics</button>
+    </div>
+
+    <!-- the record ----------------------------------------------- -->
+    <div class="panel">
+      <h3>The record <span class="lbl" style="font-weight:500" id="log-sum"></span></h3>
+      <p class="pmeta">Every question you have been through, newest first. Tap one to ask it again.</p>
+      <input class="search" id="log-q" type="search" placeholder="Search the record…" autocomplete="off">
+      <div class="filters" id="log-f" style="margin-top:8px">
+        <span class="lbl">Outcome</span>
+        <button class="fchip" data-a="0" aria-pressed="false">Asked</button>
+        <button class="fchip" data-a="1" aria-pressed="false">Warmer</button>
+        <button class="fchip" data-a="2" aria-pressed="false">Cooler</button>
+        <button class="fchip" data-a="3" aria-pressed="false">Skipped</button>
+      </div>
+      <div class="log" id="log" style="margin-top:10px"></div>
+      <button class="more hidden" id="log-more">Show more</button>
+    </div>
+
+    <!-- sessions -------------------------------------------------- -->
+    <div class="panel">
+      <h3>Sessions <span class="lbl" style="font-weight:500" id="sess-sum"></span></h3>
+      <div class="log" id="sessions"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Your data</h3>
+      <p class="pmeta">Everything is stored on this device only — nothing is uploaded anywhere.
+        Export moves your record to another device.</p>
+      <div class="datarow">
+        <button class="ghost" id="b-exp-json">Export JSON</button>
+        <button class="ghost" id="b-exp-csv">Export CSV</button>
+        <button class="ghost" id="b-imp">Import a backup</button>
+        <button class="ghost danger" id="b-wipe">Erase my record</button>
+      </div>
+      <input type="file" id="imp-file" accept="application/json" class="hidden">
+    </div>
+  </section>
+
+  <!-- ============ BROWSE ============ -->
+  <section id="v-browse" class="hidden" style="flex-direction:column;gap:12px">
+    <input class="search" id="q" type="search" placeholder="Search English, 中文, or pinyin…" autocomplete="off">
+    <div class="filters" id="f-sens"><span class="lbl">Sensitivity</span></div>
+    <div class="filters" id="f-stage"><span class="lbl">Stage</span></div>
+    <div class="filters" id="f-freq"><span class="lbl">Frequency</span></div>
+    <div class="filters" id="f-sort"><span class="lbl">Sort</span></div>
+    <div class="lbl" id="hitcount">4,228 questions</div>
+    <div class="hits" id="hits"></div>
+  </section>
+
+  <!-- ============ SAVED ============ -->
+  <section id="v-saved" class="hidden" style="flex-direction:column;gap:12px">
+    <div class="lbl" id="savedcount">Nothing saved yet</div>
+    <div class="hits" id="savedlist"></div>
+  </section>
+</div>
+
+<dialog id="gate">
+  <form method="dialog" class="gate">
+    <div class="hazard"></div>
+    <div class="gate-body">
+      <span class="lbl" style="color:var(--acc)">Consent check</span>
+      <h2 id="gate-h">This is where it gets personal</h2>
+      <p id="gate-p"></p>
+      <p class="fine">Say it out loud to each other before you tap through. Either of you can say
+        no and nothing is lost — you just stay at this depth.</p>
+      <div class="acts">
+        <button class="no" value="no" type="submit">Stay here</button>
+        <button class="go" value="yes" type="submit">We're both in</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="recap">
+  <form method="dialog" class="gate">
+    <div class="hazard"></div>
+    <div class="gate-body">
+      <span class="lbl" style="color:var(--acc)">Session</span>
+      <h2 id="recap-h">That was a good run</h2>
+      <div class="recap" id="recap-body"></div>
+      <div class="acts">
+        <button class="no" value="dash" type="submit">See the dashboard</button>
+        <button class="go" value="ok" type="submit">Back to decks</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="confirm">
+  <form method="dialog" class="gate">
+    <div class="hazard"></div>
+    <div class="gate-body">
+      <span class="lbl" style="color:var(--acc)">Confirm</span>
+      <h2 id="cf-h">Erase your record?</h2>
+      <p id="cf-p"></p>
+      <div class="acts">
+        <button class="no" value="no" type="submit">Keep it</button>
+        <button class="go" value="yes" type="submit">Erase</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script src="./questions.js"></script>
+<script src="./track.js"></script>
+<script src="./core.js"></script>
+<script src="./dashboard.js"></script>
+<script src="./boot.js"></script>
+<script src="./native.js"></script>
+</body>
+</html>

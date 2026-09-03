@@ -1,0 +1,24 @@
+{
+  "name": "4qian-workspace",
+  "version": "4.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Build scripts for the 4QIAN web app, Windows desktop app and Android app.",
+  "scripts": {
+    "build": "node build.mjs",
+    "serve": "npx -y serve app -l 5178",
+    "desktop": "npm run build && npm --prefix desktop start",
+    "desktop:win": "npm run build && npm --prefix desktop run dist",
+    "android:sync": "npm run build && npx cap sync android",
+    "android:apk": "node scripts/android-build.mjs"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.2",
+    "@capacitor/app": "^6.0.3",
+    "@capacitor/cli": "^6.2.2",
+    "@capacitor/core": "^6.2.2",
+    "@capacitor/filesystem": "^6.0.4",
+    "@capacitor/status-bar": "^6.0.3",
+    "sharp": "^0.35.4"
+  }
+}

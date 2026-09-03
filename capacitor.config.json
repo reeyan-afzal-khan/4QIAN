@@ -1,0 +1,12 @@
+{
+  "appId": "com.fourqian.app",
+  "appName": "4QIAN",
+  "webDir": "release/web",
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#08080A"
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}
