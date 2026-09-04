@@ -409,3 +409,445 @@ dialog::backdrop{background:rgba(4,4,6,.78)}
   padding:11px 18px;border-radius:10px;font-size:12.5px;font-weight:600;
   box-shadow:var(--shadow);pointer-events:none;opacity:0;transition:opacity .2s,transform .2s}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(-4px)}
+
+/* ================================================================
+   GRUVBOX — the two palettes people ask for by name.
+   Both are the published Gruvbox ramps rather than an approximation:
+   the dark set is bg0_h/bg0_s..fg0 with the bright accents, the light
+   set is the cream grounds with the faded accents, which is the only
+   way the light one keeps enough contrast to stay readable.
+   ================================================================ */
+:root[data-skin="gruvbox"]{
+  color-scheme:dark;
+  --void:#1D2021; --surface:#282828; --surface-2:#32302F; --surface-3:#3C3836;
+  --line:#504945; --line-hot:#665C54;
+  --ink:#FBF1C7; --ink-soft:#D5C4A1; --muted:#928374;
+  --acc:#FABD2F; --acc-hi:#FFD75F; --acc-dim:#79671F; --acc-wash:#32302A;
+  --on-acc:#1D2021; --stripe:#1D2021;
+  --h1:#928374; --h2:#83A598; --h3:#8EC07C; --h4:#FABD2F; --h5:#FE8019;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 14px 34px -18px rgba(0,0,0,.85);
+}
+:root[data-skin="gruvbox-light"]{
+  color-scheme:light;
+  --void:#FBF1C7; --surface:#F9F5D7; --surface-2:#F2E5BC; --surface-3:#EBDBB2;
+  --line:#D5C4A1; --line-hot:#BDAE93;
+  --ink:#282828; --ink-soft:#504945; --muted:#7C6F64;
+  --acc:#AF3A03; --acc-hi:#9D0006; --acc-dim:#D8B48C; --acc-wash:#F4E3C3;
+  --on-acc:#FBF1C7; --stripe:#282828;
+  --h1:#928374; --h2:#427B58; --h3:#B57614; --h4:#AF3A03; --h5:#9D0006;
+  --shadow:0 1px 2px rgba(80,60,30,.10), 0 12px 28px -16px rgba(80,60,30,.38);
+}
+
+/* ================================================================
+   TEXT SCALE — one multiplier the reading surfaces are sized from,
+   so "larger text" grows the question and not the chrome around it.
+   ================================================================ */
+:root{--fs:1}
+:root[data-text="s"]{--fs:.88}
+:root[data-text="l"]{--fs:1.18}
+.q-en{font-size:calc(25px * var(--fs))}
+.q-zh{font-size:calc(19.5px * var(--fs))}
+.q-py{font-size:calc(13px * var(--fs))}
+@media (max-width:380px){
+  .q-en{font-size:calc(22px * var(--fs))}
+  .q-zh{font-size:calc(18px * var(--fs))}
+}
+
+/* ---------- theme picker, now grouped by ground ---------- */
+.skingroup+.skingroup{margin-top:12px}
+.skingroup>.lbl{display:block;margin-bottom:6px}
+
+/* ---------- skip link ---------- */
+.skip{position:absolute;left:-9999px;top:0;z-index:10000;background:var(--acc);
+  color:var(--on-acc);padding:10px 16px;border-radius:0 0 9px 0;font-weight:700;font-size:13px}
+.skip:focus{left:0}
+
+/* ================================================================
+   SESSION HEAD — goal progress and a clock, so a run has a shape
+   ================================================================ */
+.goal{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:11px 13px;box-shadow:var(--shadow)}
+.goal .gl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.goal .gv{font-size:11.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums;
+  white-space:nowrap;font-weight:600}
+.goal .gtrack{grid-column:1/3;height:6px;border-radius:3px;background:var(--surface-3);overflow:hidden}
+.goal .gfill{display:block;height:100%;border-radius:3px;background:var(--acc);transition:width .4s}
+.goal.done .gfill{background:var(--h5)}
+
+/* ---------- speech ---------- */
+.mini.speaking{color:var(--acc)}
+.mini.speaking svg{animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+
+/* ---------- question of the day ---------- */
+.qotd{display:grid;gap:7px}
+.qotd .qq{font-family:Fraunces,Georgia,serif;font-size:calc(17px * var(--fs));line-height:1.35;color:var(--ink)}
+.qotd .qz{font-family:"Noto Serif SC",serif;font-size:calc(14.5px * var(--fs));color:var(--ink-soft)}
+.qotd .qp{font-size:12px;color:var(--muted);font-style:italic}
+.qotd .qacts{display:flex;gap:7px;align-items:center;margin-top:4px;flex-wrap:wrap}
+
+/* ---------- inline primary action ---------- */
+.act-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{padding:11px 16px;border-radius:10px;background:var(--acc);color:var(--on-acc);
+  font-weight:700;font-size:13px;text-align:center;letter-spacing:.01em;border:1px solid transparent}
+.btn:hover{background:var(--acc-hi)}
+.btn.sm{padding:8px 13px;font-size:12px;border-radius:9px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.act-row .ghost{align-self:auto}
+
+/* ---------- search match highlight ---------- */
+mark{background:var(--acc-wash);color:var(--acc);padding:0 1px;border-radius:3px;font-weight:700}
+
+/* ---------- keyboard help ---------- */
+.keys{display:flex;flex-direction:column;max-height:54vh;overflow:auto}
+.keyrow{display:grid;grid-template-columns:76px minmax(0,1fr);gap:12px;align-items:center;
+  padding:8px 0;border-bottom:1px solid var(--line);font-size:12.5px;color:var(--ink-soft)}
+.keyrow:last-child{border-bottom:none}
+.keyrow kbd{font:700 11px/1 Archivo,system-ui,sans-serif;background:var(--surface-3);
+  border:1px solid var(--line-hot);border-bottom-width:2px;border-radius:6px;padding:5px 7px;
+  color:var(--ink);white-space:nowrap;text-align:center;display:inline-block}
+.keysec{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+  font-weight:700;padding:13px 0 3px}
+.keysec:first-child{padding-top:0}
+
+/* ---------- dashboard: outcome mix ---------- */
+.mix{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--surface-3);gap:1px}
+.mix i{display:block;min-width:0;transition:flex-basis .4s}
+.mixkey{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:9px}
+.mixkey span{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;
+  font-variant-numeric:tabular-nums}
+.mixkey i{width:9px;height:9px;border-radius:2px;flex:none}
+
+/* ---------- dashboard: trend + clock charts ---------- */
+.spark{display:flex;align-items:flex-end;gap:3px;height:76px}
+.spark .sb{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;height:100%}
+.spark .sb i{display:block;background:var(--acc);border-radius:3px 3px 0 0;min-height:2px;
+  transition:height .4s}
+.spark .sb.zero i{background:var(--surface-3)}
+.sparkx{display:flex;gap:3px;margin-top:6px}
+.sparkx span{flex:1;min-width:0;font-size:9px;color:var(--muted);text-align:center;
+  overflow:hidden;white-space:nowrap}
+.clock{display:flex;align-items:flex-end;gap:2px;height:66px}
+.clock .cb{flex:1;min-width:0;background:var(--surface-3);border-radius:2px 2px 0 0;
+  position:relative;height:100%}
+.clock .cb i{position:absolute;inset:auto 0 0 0;background:var(--acc);border-radius:2px 2px 0 0;
+  transition:height .4s}
+.clock .cb.now{outline:1px solid var(--acc-dim);outline-offset:1px}
+.clockx{display:flex;justify-content:space-between;font-size:9.5px;color:var(--muted);margin-top:6px}
+
+/* ---------- dashboard: last-14-days ribbon ---------- */
+.ribbon{display:flex;gap:3px;align-items:stretch;height:30px;margin-top:8px}
+.ribbon i{flex:1;border-radius:3px;background:var(--surface-3);min-width:0}
+.ribbon i.on{background:var(--acc)}
+.ribbon i.half{background:var(--acc);opacity:.55}
+.ribbonx{display:flex;justify-content:space-between;font-size:9.5px;color:var(--muted);margin-top:5px}
+
+/* ---------- about / build ---------- */
+.about{display:flex;flex-direction:column}
+.about div{display:flex;justify-content:space-between;gap:12px;padding:7px 0;
+  border-bottom:1px solid var(--line);font-size:11.5px;color:var(--muted)}
+.about div:last-child{border-bottom:none}
+.about b{color:var(--ink-soft);font-weight:600;font-variant-numeric:tabular-nums;
+  text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ---------- empty states can offer the way out ---------- */
+.empty .btn{margin-top:13px;display:inline-block}
+
+/* ---------- toast is a live region now; keep it off the nav ---------- */
+.toast{max-width:calc(100% - 30px);text-align:center}
+
+/* ---------- four data buttons read better in one row when there is room --- */
+@media (min-width:520px){.datarow{grid-template-columns:repeat(4,1fr)}}
+
+/* ---------- print: the record, on paper ---------- */
+@media print{
+  .navrow,.mast,#v-setup,#v-session,#v-browse,#v-saved,.datarow,.toast,.skip{display:none!important}
+  body,html{background:#fff;color:#000}
+  .panel{break-inside:avoid;border-color:#ccc;box-shadow:none}
+}
+
+/* ================================================================
+   STUDY — the word breakdown and the sample answer, under the card
+   ================================================================ */
+.navrow{grid-template-columns:repeat(5,1fr)}
+.navrow button{padding:9px 2px;font-size:11.5px}
+@media (max-width:380px){.navrow button{padding:8px 1px;font-size:10.5px;letter-spacing:-.01em}}
+
+.study{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:var(--shadow);overflow:hidden}
+.study-h{display:flex;align-items:center;gap:10px;width:100%;padding:11px 13px;
+  transition:background .16s}
+.study-h:hover{background:var(--surface-2)}
+.study-sum{margin-left:auto;font-size:11px;color:var(--ink-soft);font-weight:600;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.chev{width:8px;height:8px;flex:none;border-right:2px solid var(--muted);
+  border-bottom:2px solid var(--muted);transform:rotate(45deg) translate(-2px,-2px);
+  transition:transform .2s}
+.study-h[aria-expanded="true"] .chev{transform:rotate(225deg) translate(-2px,-2px)}
+.study-in{padding:0 13px 13px;display:flex;flex-direction:column;gap:11px}
+
+/* --- word rows --- */
+.wlist{display:flex;flex-direction:column;gap:1px}
+.wrow{width:100%;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 11px;
+  padding:8px 4px;border-bottom:1px solid var(--line);align-items:baseline;text-align:left;
+  border-radius:6px;transition:background .16s}
+.wrow:last-child{border-bottom:none}
+.wrow:hover{background:var(--surface-2)}
+.wrow .wh{grid-area:1/1/3/2;font-family:"Noto Serif SC",serif;font-size:calc(19px * var(--fs));
+  color:var(--ink);line-height:1.2;align-self:center;white-space:nowrap}
+.wrow .wp{grid-area:1/2/2/3;font-size:12px;color:var(--acc);font-style:italic;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wrow .we{grid-area:2/2/3/3;font-size:12px;color:var(--ink-soft);line-height:1.35;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wrow .wl{grid-area:1/3/3/4;align-self:center;font-size:9.5px;letter-spacing:.06em;
+  text-transform:uppercase;font-weight:700;color:var(--muted);white-space:nowrap;text-align:right}
+.wrow .wl.lv1{color:var(--h3)} .wrow .wl.lv2{color:var(--h2)}
+.wrow.big{border:1px solid var(--line);background:var(--surface);padding:11px 13px;
+  border-radius:10px;margin-bottom:6px}
+.wrow.big:hover{border-color:var(--line-hot);background:var(--surface-2)}
+.words{display:flex;flex-direction:column}
+
+/* --- the AREC answer --- */
+.arec{display:flex;flex-direction:column;gap:9px}
+.apart{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:3px 10px;
+  padding:11px 12px;border-radius:10px;background:var(--surface-2);
+  border:1px solid var(--line);border-left:3px solid var(--acc)}
+.apart.frame{border-left-style:dashed;border-left-color:var(--acc-dim);background:none}
+.apart .ak{grid-area:1/1/3/2;font-family:Fraunces,Georgia,serif;font-size:17px;font-weight:700;
+  color:var(--acc);line-height:1;align-self:start;padding-top:1px}
+.apart .an{grid-area:1/2/2/3;font-size:10px;letter-spacing:.11em;text-transform:uppercase;
+  font-weight:700;color:var(--muted);display:flex;flex-direction:column;gap:2px}
+.apart .an small{font-size:10.5px;letter-spacing:0;text-transform:none;font-weight:500;
+  color:var(--muted);line-height:1.4;opacity:.85}
+.apart .ae{grid-area:2/2/3/3;font-family:Fraunces,Georgia,serif;
+  font-size:calc(14.5px * var(--fs));line-height:1.45;color:var(--ink);margin-top:5px}
+.apart .az{grid-area:3/2/4/3;font-family:"Noto Serif SC",serif;
+  font-size:calc(14px * var(--fs));line-height:1.6;color:var(--ink-soft);margin-top:6px}
+.apart .ap{grid-area:4/2/5/3;font-size:calc(11.5px * var(--fs));color:var(--muted);
+  font-style:italic;line-height:1.5;margin-top:3px}
+.apart .asay{grid-area:1/3/2/4;width:30px;height:30px;align-self:start}
+.apart .asay[hidden]{display:none}
+
+/* --- word dialog --- */
+.wordhead{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 14px;align-items:baseline}
+.wordhead .whz{grid-area:1/1/4/2;font-family:"Noto Serif SC",serif;font-size:40px;
+  color:var(--ink);line-height:1.05;align-self:center}
+.wordhead .wpy{grid-area:1/2/2/3;font-size:15px;color:var(--acc);font-style:italic;font-weight:600}
+.wordhead .wen{grid-area:2/2/3/3;font-size:14px;color:var(--ink-soft);line-height:1.4}
+.wordhead .lbl{grid-area:3/2/4/3;margin-top:3px}
+.uses{display:flex;flex-direction:column;gap:1px;max-height:38vh;overflow:auto}
+.wuse{width:100%;text-align:left;padding:9px 2px;border-bottom:1px solid var(--line);
+  display:block;transition:background .16s;border-radius:6px}
+.wuse:last-child{border-bottom:none}
+.wuse:hover{background:var(--surface-2)}
+.wuse .ue{display:block;font-size:12.5px;color:var(--ink);line-height:1.35}
+.wuse .uz{display:block;font-family:"Noto Serif SC",serif;font-size:12.5px;
+  color:var(--ink-soft);margin-top:3px;line-height:1.5}
+
+/* ---------- masthead mark: two characters now, not one ----------
+   4千 is the name written the way the app is: half digits, half Chinese.
+   Two glyphs of different widths in a 34px square need the box to grow a
+   little and the tracking to come in, or the 千 touches the edge. */
+.mark{width:auto;min-width:44px;height:34px;padding:0 7px;font-size:16px;
+  letter-spacing:-.02em;font-weight:700;gap:0}
+@media (max-width:380px){.mark{min-width:40px;height:31px;font-size:14.5px;padding:0 6px}}
+
+/* ================================================================
+   EMBER — black and orange. The darkest ground in the set, with a
+   single hot accent and nothing else competing for it. Where Hazard
+   is a warning label, this is the inside of a furnace: the ramp runs
+   from ash through to white heat, which is the most literal reading
+   the depth gauge has ever had.
+   ================================================================ */
+:root[data-skin="ember"]{
+  color-scheme:dark;
+  --void:#000000; --surface:#0D0B0A; --surface-2:#161211; --surface-3:#211A17;
+  --line:#2E2320; --line-hot:#48342C;
+  --ink:#F7EDE6; --ink-soft:#D2BFB2; --muted:#8C7A70;
+  --acc:#FF6B18; --acc-hi:#FF8F4D; --acc-dim:#6B2E0C; --acc-wash:#1E100A;
+  --on-acc:#000000; --stripe:#000000;
+  --h1:#7A6A62; --h2:#A85A20; --h3:#E2731A; --h4:#FF6B18; --h5:#FFB03A;
+  --shadow:0 1px 2px rgba(0,0,0,.75), 0 14px 34px -18px rgba(0,0,0,1);
+}
+
+/* per-part speaking estimate, sat next to the part name */
+.apart .asec{font-style:normal;font-size:9.5px;letter-spacing:.04em;color:var(--acc);
+  background:var(--acc-wash);border:1px solid var(--acc-dim);border-radius:4px;
+  padding:1px 5px;margin-left:6px;font-variant-numeric:tabular-nums}
+.apart .an{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:0 4px}
+.apart .an small{flex:1 0 100%;margin-top:2px}
+
+/* ================================================================
+   WHOSE TURN — a two-option control, not a status line
+   ================================================================ */
+.turnbar{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:11px 13px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px}
+.turnbar>.lbl{color:var(--muted)}
+.turn-seg{background:var(--surface-2)}
+.turn-seg button{padding:11px 6px;font-size:13.5px;font-weight:600;position:relative}
+.turn-seg button[aria-pressed="true"]{background:var(--acc);color:var(--on-acc);font-weight:700}
+/* A dot on the active side, so the state survives being read at a glance
+   from across a table rather than only through the fill colour. */
+.turn-seg button[aria-pressed="true"]::before{content:"";display:inline-block;width:6px;height:6px;
+  border-radius:50%;background:var(--on-acc);margin-right:7px;vertical-align:middle}
+
+/* ---------- two name fields ---------- */
+.names{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+@media (max-width:380px){.names{grid-template-columns:1fr}}
+.names label{display:flex;flex-direction:column;gap:5px;font-size:10.5px;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--muted);font-weight:600}
+.names input{font-size:14px;padding:10px 12px;text-transform:none;letter-spacing:0}
+
+/* ---------- the lead-in above the three choices ---------- */
+.ctl-lead{margin:2px 0 -4px;text-align:center}
+
+/* ================================================================
+   THE TOUR — dim everything, ring one thing, caption it
+   ================================================================ */
+body.touring{overflow:hidden}
+.tour{position:fixed;inset:0;z-index:9997}
+.tour-dim{position:absolute;inset:0;background:rgba(4,4,6,.72)}
+/* The "hole" is a ring with an enormous shadow rather than a real cut-out:
+   a clip-path hole cannot be animated smoothly and breaks on older WebViews,
+   whereas a spread shadow dims everything outside the box on any engine. */
+.tour-ring{position:fixed;border-radius:12px;pointer-events:none;
+  box-shadow:0 0 0 9999px rgba(4,4,6,.72), 0 0 0 2px var(--acc);
+  transition:top .28s, left .28s, width .28s, height .28s}
+.tour-ring.hidden{display:none}
+.tour-ring+.tour-box{}
+/* With a ring on screen the ring supplies the dim, so the flat one goes. */
+.tour:has(.tour-ring:not(.hidden)) .tour-dim{opacity:0}
+
+.tour-box{position:fixed;left:50%;transform:translateX(-50%);
+  width:min(430px, calc(100% - 26px));background:var(--surface);
+  border:1px solid var(--line-hot);border-radius:var(--r);box-shadow:var(--shadow);
+  padding:16px 17px;display:flex;flex-direction:column;gap:7px;z-index:1}
+.tour-box.mid{top:50%!important;bottom:auto!important;transform:translate(-50%,-50%)}
+.tour-box h3{font-family:Fraunces,Georgia,serif;font-size:18px;font-weight:600;letter-spacing:0}
+.tour-box p{margin:0;font-size:13px;line-height:1.6;color:var(--ink-soft)}
+.tour-acts{display:flex;align-items:center;gap:7px;margin-top:6px}
+.tour-acts .ghost{align-self:auto;padding:8px 12px;font-size:12px}
+.tour-acts #tour-skip{margin-right:auto}
+.tour-acts .ghost:disabled{opacity:.35;cursor:not-allowed}
+.tour-dots{display:flex;gap:4px;margin-right:auto}
+.tour-dots i{width:5px;height:5px;border-radius:50%;background:var(--line-hot);display:block}
+.tour-dots i.on{background:var(--acc);width:14px;border-radius:3px}
+@media (max-width:380px){
+  .tour-box{padding:14px 14px}
+  .tour-box h3{font-size:16.5px}
+  .tour-acts .ghost{padding:7px 9px;font-size:11.5px}
+}
+
+/* ---------- legend dialog: the chips shown at their real size ---------- */
+#legend .keyrow{grid-template-columns:112px minmax(0,1fr);align-items:start}
+#legend .keyrow>span:first-child{display:flex;flex-wrap:wrap}
+#legend .keyrow b{color:var(--ink)}
+#legend .keyrow .chip{white-space:normal}
+
+/* AREC parts now order by which language you are producing, so the rows
+   cannot be pinned to fixed grid areas any more. */
+.apart{grid-template-columns:26px minmax(0,1fr) auto}
+.apart .ak{grid-column:1;grid-row:1/span 5}
+.apart .an{grid-column:2;grid-row:1}
+.apart .asay{grid-column:3;grid-row:1}
+.apart .lead,.apart .second,.apart .ap{grid-column:2}
+.apart .ae,.apart .az,.apart .ap{grid-area:auto/2}
+.apart .lead{margin-top:6px}
+.apart .second{opacity:.72;font-size:calc(13px * var(--fs))}
+.apart .az.lead{font-size:calc(15.5px * var(--fs))}
+.apart .ae.lead{font-size:calc(15px * var(--fs))}
+
+/* ================================================================
+   TWO THEMES THAT MATCH THE WINDOW NEXT TO THEM
+
+   This app is used beside a chat client, and a sidecar that clashes
+   with the thing it sits next to reads as a different application
+   rather than a companion to one. Blurple takes Discord's dark
+   greys and its indigo; Sky takes the white-and-blue of a language
+   exchange app. Neither is a copy of a product's palette — they are
+   the same neighbourhood, so the two windows look related.
+   ================================================================ */
+:root[data-skin="blurple"]{
+  color-scheme:dark;
+  --void:#1E1F22; --surface:#2B2D31; --surface-2:#313338; --surface-3:#383A40;
+  --line:#3F4147; --line-hot:#4E5058;
+  --ink:#F2F3F5; --ink-soft:#B5BAC1; --muted:#80848E;
+  --acc:#5865F2; --acc-hi:#7983F5; --acc-dim:#3C45A5; --acc-wash:#25264A;
+  --on-acc:#FFFFFF; --stripe:#1E1F22;
+  --h1:#80848E; --h2:#3BA55D; --h3:#5865F2; --h4:#EB459E; --h5:#F0B232;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 14px 34px -18px rgba(0,0,0,.9);
+}
+:root[data-skin="sky"]{
+  color-scheme:light;
+  --void:#F2F5F9; --surface:#FFFFFF; --surface-2:#F5F8FC; --surface-3:#E8EEF6;
+  --line:#DCE4EE; --line-hot:#C3CFDF;
+  --ink:#101725; --ink-soft:#3B475C; --muted:#6B7A90;
+  --acc:#1573E6; --acc-hi:#0E5CBD; --acc-dim:#B6D3F6; --acc-wash:#E8F1FD;
+  --on-acc:#FFFFFF; --stripe:#101725;
+  --h1:#7C8AA0; --h2:#1FA97A; --h3:#1573E6; --h4:#7A4FE0; --h5:#E0518A;
+  --shadow:0 1px 2px rgba(20,40,70,.07), 0 12px 28px -16px rgba(20,40,70,.28);
+}
+
+/* ================================================================
+   SEND BAR — the control this app is actually used through
+   ================================================================ */
+.sendbar{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:11px 13px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px}
+.sendbar>.lbl{color:var(--muted)}
+.send-btns{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.sendb{padding:11px 4px;border-radius:9px;border:1px solid var(--line);
+  background:var(--surface-2);color:var(--ink-soft);font-size:12.5px;font-weight:600;
+  text-align:center;transition:all .14s;white-space:nowrap}
+.sendb:hover{border-color:var(--acc-dim);color:var(--ink);background:var(--surface-3)}
+.sendb:active{transform:translateY(1px)}
+/* A copy is invisible by nature, so the button has to say it happened. */
+.sendb.sent{background:var(--acc);color:var(--on-acc);border-color:transparent}
+.sendb.sent::after{content:" ✓"}
+@media (max-width:380px){.sendb{font-size:11.5px;padding:10px 2px}}
+
+/* ---------- copy format preview ---------- */
+.copy-preview{margin:10px 0 0;padding:11px 12px;border-radius:9px;background:var(--surface-2);
+  border:1px dashed var(--line-hot);color:var(--ink-soft);white-space:pre-wrap;
+  font:500 12.5px/1.65 "Noto Serif SC",Archivo,system-ui,sans-serif;
+  max-height:110px;overflow:auto}
+
+/* ================================================================
+   PEOPLE — who you have talked to
+   ================================================================ */
+.people{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.person{display:flex;flex-direction:column;gap:1px;padding:7px 11px;border-radius:9px;
+  border:1px solid var(--line);background:var(--surface-2);transition:all .14s;min-width:0}
+.person:hover{border-color:var(--line-hot);background:var(--surface-3)}
+.person.on{border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
+.person b{font-size:12.5px;font-weight:600;color:var(--ink);max-width:120px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.person small{font-size:10px;color:var(--muted)}
+.person.on small{color:var(--acc)}
+
+/* who the current run is with, on the progress bar */
+.goal{grid-template-columns:minmax(0,1fr) auto}
+.gwho{grid-column:1/3;font-size:11px;color:var(--acc);font-weight:600;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gwho.hidden{display:none}
+
+/* ---------- person detail rows on the dashboard ---------- */
+.plist{display:flex;flex-direction:column;gap:6px}
+.prow{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;
+  padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:var(--surface);
+  text-align:left;transition:all .16s}
+.prow:hover{border-color:var(--line-hot);background:var(--surface-2)}
+.prow .pn{font-size:13.5px;font-weight:600;color:var(--ink);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.prow .pv{font-size:11px;color:var(--acc);font-variant-numeric:tabular-nums;
+  white-space:nowrap;font-weight:600}
+.prow .pm{grid-column:1/3;font-size:10.5px;color:var(--muted);letter-spacing:.03em}
+
+/* The tour needed one element to point at that covers both the three-way
+   choice and the neutral "same again" button, so they were wrapped. A plain
+   div does not inherit the column gap the section was giving them, which
+   left the two rows flush against each other — hence the explicit gap here.
+   It is a little wider than the section rhythm on purpose: picking a
+   direction and asking for another of the same are different kinds of
+   decision, and the space says so. */
+#controls-wrap{display:flex;flex-direction:column;gap:18px}

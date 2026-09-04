@@ -143,6 +143,114 @@ function renderHeat(){
     : "nothing yet";
 }
 
+/* ---------------- rhythm: days, weeks, hours ----------------
+ *
+ * The calendar above answers "did I show up". This answers "when, and is it
+ * holding up" — the last fortnight at a glance, twelve weeks of volume, and
+ * the hour of day the habit actually lives at. Days and weeks come from the
+ * per-day totals, which are never trimmed; the hour histogram can only come
+ * from the events, which are, so it is labelled as recent rather than
+ * all-time.
+ */
+function renderRhythm(){
+  const day = TRACK.days();
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  /* --- last 14 days --- */
+  const last14 = [];
+  for(let i = 13; i >= 0; i--){
+    const dt = new Date(today); dt.setDate(dt.getDate() - i);
+    last14.push({dt, n: day[TRACK.dayKey(dt.getTime())] | 0});
+  }
+  const busiest = Math.max(1, ...last14.map(d => d.n));
+  $("#ribbon").innerHTML = last14.map(d => {
+    const cls = !d.n ? "" : d.n >= busiest*0.5 ? "on" : "half";
+    return `<i class="${cls}" title="${esc(d.dt.toLocaleDateString(undefined,
+      {weekday:"short",day:"numeric",month:"short"}))}: ${d.n}"></i>`;
+  }).join("");
+  const fmtDay = d => d.toLocaleDateString(undefined,{day:"numeric",month:"short"});
+  $("#ribbonx").innerHTML = `<span>${esc(fmtDay(last14[0].dt))}</span><span>today</span>`;
+
+  /* --- 12 weeks of volume --- */
+  const weeks = [];
+  for(let w = 11; w >= 0; w--){
+    const end = new Date(today); end.setDate(end.getDate() - w*7);
+    const startOfWeek = new Date(end); startOfWeek.setDate(end.getDate() - 6);
+    let n = 0;
+    for(let k = 0; k < 7; k++){
+      const dt = new Date(startOfWeek); dt.setDate(startOfWeek.getDate() + k);
+      if(dt > today) break;
+      n += day[TRACK.dayKey(dt.getTime())] | 0;
+    }
+    weeks.push({n, label: startOfWeek});
+  }
+  const wMax = Math.max(1, ...weeks.map(w => w.n));
+  $("#spark").innerHTML = weeks.map(w =>
+    `<span class="sb ${w.n ? "" : "zero"}" title="week of ${esc(w.label.toLocaleDateString(undefined,
+       {day:"numeric",month:"short"}))}: ${w.n}">
+       <i style="height:${w.n ? Math.max(4, Math.round(w.n/wMax*100)) : 3}%"></i></span>`).join("");
+  $("#sparkx").innerHTML = weeks.map((w,i) =>
+    `<span>${i % 3 === 0 ? esc(w.label.toLocaleDateString(undefined,{month:"short",day:"numeric"})) : ""}</span>`).join("");
+
+  /* --- hour of day --- */
+  const hours = new Array(24).fill(0);
+  for(const e of TRACK.events()) hours[new Date(e[TRACK.TS]*1000).getHours()]++;
+  const hMax = Math.max(1, ...hours);
+  const nowH = new Date().getHours();
+  $("#clock").innerHTML = hours.map((n,h) =>
+    `<span class="cb ${h===nowH ? "now" : ""}" title="${String(h).padStart(2,"0")}:00 — ${n}">
+       <i style="height:${n ? Math.max(6, Math.round(n/hMax*100)) : 0}%"></i></span>`).join("");
+
+  const peak = hours.indexOf(hMax);
+  const fortnight = last14.reduce((s,d) => s + d.n, 0);
+  $("#rhythm-sum").textContent = fortnight
+    ? `${nf(fortnight)} in 14 days${hMax > 1 ? " · peak around " + String(peak).padStart(2,"0") + ":00" : ""}`
+    : "nothing in the last fortnight";
+}
+
+/* ---------------- outcome mix and pace ---------------- */
+const MIX_COLORS = ["var(--acc)", "var(--h5)", "var(--h2)", "var(--muted)"];
+
+function renderMix(){
+  const ev = TRACK.events();
+  const counts = [0,0,0,0];
+  let dwellTotal = 0;
+  const dwells = [];
+  for(const e of ev){
+    counts[e[TRACK.HOW]] = (counts[e[TRACK.HOW]] | 0) + 1;
+    const d = e[TRACK.DW] | 0;
+    if(d > 0 && d < 900){ dwellTotal += d; dwells.push(d); }
+  }
+  const total = counts.reduce((s,n) => s+n, 0);
+
+  if(!total){
+    $("#mix").innerHTML = "";
+    $("#mixkey").innerHTML = `<span>Nothing recorded yet.</span>`;
+    $("#pace").innerHTML = "";
+    $("#mix-sum").textContent = "";
+    return;
+  }
+  $("#mix-sum").textContent = `${nf(total)} recent card${total===1?"":"s"}`;
+  $("#mix").innerHTML = counts.map((n,i) => n
+    ? `<i style="flex:${n} 1 0;background:${MIX_COLORS[i]}" title="${TRACK.HOW_NAME[i]}: ${n}"></i>` : ""
+  ).join("");
+  $("#mixkey").innerHTML = counts.map((n,i) =>
+    `<span><i style="background:${MIX_COLORS[i]}"></i>${TRACK.HOW_NAME[i]} ${nf(n)} · ${pct(n,total)}%</span>`
+  ).join("");
+
+  dwells.sort((a,b) => a-b);
+  const median = dwells.length ? dwells[Math.floor(dwells.length/2)] : 0;
+  const mins = Math.round(dwellTotal/60);
+  const skipRate = pct(counts[3], total);
+  $("#pace").innerHTML =
+    `<div><span>Median time on a card</span><b>${median ? median + "s" : "—"}</b></div>`
+  + `<div><span>Time on the deck, recent cards</span><b>${mins >= 60
+       ? Math.floor(mins/60) + "h " + (mins%60) + "m" : mins + " min"}</b></div>`
+  + `<div><span>Longest you sat with one</span><b>${dwells.length ? dwells[dwells.length-1] + "s" : "—"}</b></div>`
+  + `<div><span>Skip rate</span><b>${skipRate}%</b></div>`
+  + `<div><span>Went deeper vs backed off</span><b>${nf(counts[1])} · ${nf(counts[2])}</b></div>`;
+}
+
 /* ---------------- high-frequency panel ---------------- */
 let freqMode = "corpus", freqFilter = "all", freqShown = 25;
 
@@ -264,6 +372,62 @@ function renderCats(a){
   $("#topic-sum").textContent = `${touched} of ${rows.length} touched`;
 }
 
+
+/* ---------------- people ----------------
+ *
+ * The one view that only makes sense for how this app is actually used: a
+ * different stranger every session, and a record of what you got through with
+ * each of them. Sorted by most recent, because the person you spoke to
+ * yesterday is the one you are most likely to be picking back up.
+ */
+function renderPeoplePanel(){
+  const pp = TRACK.people();
+  const host = $("#dpeople");
+  if(!pp.length){
+    $("#dpeople-sum").textContent = "";
+    host.innerHTML = `<div class="empty">Nobody yet.<br>
+      Put a name in the box on the Decks screen before you start, and 4QIAN will
+      remember what you asked them.</div>`;
+    return;
+  }
+  const rows = pp.map((nm, i) => ({nm, i, ...TRACK.personStats(i)}))
+                 .sort((a, b) => b.last - a.last);
+  const met = rows.filter(r => r.asked).length;
+  $("#dpeople-sum").textContent = `${nf(pp.length)} · ${nf(met)} talked to`;
+
+  const when = ts => {
+    if(!ts) return "not started";
+    const days = Math.floor((Date.now()/1000 - ts) / 86400);
+    return days <= 0 ? "today" : days === 1 ? "yesterday" : days + " days ago";
+  };
+  host.innerHTML = rows.map(p => `
+    <button class="prow" data-p="${esc(p.nm)}">
+      <span class="pn">${esc(p.nm)}</span>
+      <span class="pv">${nf(p.covered)} asked</span>
+      <span class="pm">${esc(when(p.last))} · ${nf(p.sessions)} session${p.sessions===1?"":"s"}
+        · got to ${esc(STAGE_NAME[Math.max(0, p.deepest-1)] || "—")}</span>
+    </button>`).join("");
+}
+
+/* ---------------- vocabulary ---------------- */
+
+/* The same numbers as the Words view, summarised. Kept here rather than
+   imported so the dashboard stays a single pass over the record: metWords()
+   caches on the size of the count table, so calling it from both places
+   costs one segmentation run, not two. */
+function renderVocabPanel(){
+  const met = VOCAB.metWords();
+  const tot = [0,0,0,0], got = [0,0,0,0];
+  for(const [hz,,,lv] of VOCAB.all){ tot[lv-1]++; if(met.has(hz)) got[lv-1]++; }
+  $("#dvoc").innerHTML = VOCAB.levels.map((nm, i) =>
+    brow(nm, `${nf(got[i])} / ${nf(tot[i])} · ${pct(got[i], tot[i])}%`,
+         tot[i] ? got[i]/tot[i] : 0, hc(Math.min(5, i + 2)))).join("");
+  const all = got.reduce((a, b) => a + b, 0);
+  $("#dvoc-sum").textContent = all
+    ? `${nf(all)} of ${nf(VOCAB.size)} met · ${pct(all, VOCAB.size)}%`
+    : "nothing met yet";
+}
+
 /* ---------------- the record ---------------- */
 let logShown = 40, logFilter = new Set(), logTerm = "";
 
@@ -319,7 +483,7 @@ function renderSessions(){
     const mins = Math.max(1, Math.round((s[1]-s[0])/60));
     return `<div class="lrow" style="--dc:${hc(Math.max(1,Math.min(5,s[4])))};cursor:default">
       <span class="spine"></span>
-      <span><span class="le">${esc((DATA.decks[s[2]]||{}).name || "Deck")}</span>
+      <span><span class="le">${esc(deckName(s[2]))}</span>
         <span class="lm">${s[3]} question${s[3]===1?"":"s"} · deepest ${esc(STAGE_NAME[Math.max(0,s[4]-1)]||"—")} · ${s[5]} topic${s[5]===1?"":"s"} · ${mins} min</span></span>
       <span class="lt">${d.toLocaleDateString(undefined,{day:"numeric",month:"short"})}<br>
         ${d.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"})}</span>
@@ -332,13 +496,38 @@ function renderDash(){
   const a = aggregate();
   renderKPIs(a);
   renderHeat();
+  renderRhythm();
+  renderMix();
   renderFreq(a);
   renderBands(a);
   renderCols($("#c-stage"), STAGE_NAME, a.stage, i => hc(i+1));
   renderCols($("#c-sens"),  SENS_NAME,  a.sens,  i => hc(i+1));
   renderCats(a);
+  renderVocabPanel();
+  renderPeoplePanel();
   renderLog();
   renderSessions();
+  renderStorage();
+}
+
+/* How much room the record is taking. localStorage is the one resource this
+   app can actually run out of, and the failure mode — a silent quota error
+   that drops half the events — is worth warning about before it happens. */
+function renderStorage(){
+  let bytes = 0;
+  try{
+    for(const k of ["4qian.track.v1", "4qian.v1"])
+      bytes += ((localStorage.getItem(k) || "").length) * 2;   // UTF-16 code units
+  }catch(e){ return; }
+  const kb = Math.max(1, Math.round(bytes/1024));
+  const ev = TRACK.events().length;
+  $("#storage-note").textContent =
+    `Your record is about ${nf(kb)} KB — ${nf(ev)} detailed entries, `
+  + `${nf(TRACK.uniques())} questions counted, ${nf(TRACK.sessions().length)} sessions. `
+  + (ev >= 6000
+      ? "The detailed log is full, so the oldest entries are now rolling off; totals, "
+      + "counts and the calendar are unaffected. Export a backup to keep them."
+      : "Well inside what the device allows.");
 }
 
 /* ---------------- file out / in ---------------- */
@@ -401,6 +590,17 @@ function wireDashboard(){
     if(row) openQuestion(+row.dataset.r);
   });
   $("#cats-more").addEventListener("click", () => { catsAll = !catsAll; renderCats(aggregate()); });
+  $("#v-dash").addEventListener("click", e => {
+    const go = e.target.closest("button[data-go]");
+    if(go) return show(go.dataset.go);
+    const p = e.target.closest(".prow");
+    if(p){
+      $("#partner").value = p.dataset.p;
+      setPartner(p.dataset.p);
+      renderPeople(); renderPartner(); renderPeoplePanel();
+      toast("Now talking to " + p.dataset.p);
+    }
+  });
 
   let lt;
   $("#log-q").addEventListener("input", e => {
@@ -420,10 +620,10 @@ function wireDashboard(){
   });
 
   $("#b-exp-json").addEventListener("click", () =>
-    saveFile(`depth-gauge-${stamp()}.json`, "application/json", TRACK.toJSON(S)));
+    saveFile(`4qian-${stamp()}.json`, "application/json", TRACK.toJSON(S)));
   $("#b-exp-csv").addEventListener("click", () => {
     if(!TRACK.events().length) return toast("Nothing to export yet");
-    saveFile(`depth-gauge-record-${stamp()}.csv`, "text/csv", TRACK.toCSV(csvLookup));
+    saveFile(`4qian-record-${stamp()}.csv`, "text/csv", TRACK.toCSV(csvLookup));
   });
   $("#b-imp").addEventListener("click", () => $("#imp-file").click());
   $("#imp-file").addEventListener("change", async e => {

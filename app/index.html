@@ -8,8 +8,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="./manifest.webmanifest">
-<link rel="icon" href="./icon-192.png">
-<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="icon" href="./icon-192.png?v=4qian">
+<link rel="apple-touch-icon" href="./icon-192.png?v=4qian">
 <title>4QIAN</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,8 +20,15 @@
 /* Stamp the saved theme before first paint, so a light palette does not
    flash the default dark one while the deck data parses. */
 try{ var _s = localStorage.getItem("4qian.v1") || localStorage.getItem("cdg.v3");
-     var _k = JSON.parse(_s||"{}").skin;
-     if(_k && _k!=="hazard") document.documentElement.dataset.skin = _k; }catch(e){}
+     var _j = JSON.parse(_s||"{}");
+     var _k = _j.skin;
+     /* With "follow the system" on, the device gets the final say before the
+        stored skin does — otherwise a phone that flipped to dark overnight
+        opens on yesterday's light palette and then swaps under the reader. */
+     if(_j.autoTheme && window.matchMedia)
+       _k = matchMedia("(prefers-color-scheme: dark)").matches ? _j.skinDark : _j.skinLight;
+     if(_k && _k!=="hazard") document.documentElement.dataset.skin = _k;
+     if(_j.text && _j.text!=="m") document.documentElement.dataset.text = _j.text; }catch(e){}
 
 /* Visible failure reporting. Installed first so it survives a parse error in
    the main script below, which would otherwise leave a blank page. */
@@ -56,27 +63,154 @@ addEventListener("unhandledrejection", function(e){
 </script>
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 <div class="wrap">
   <header class="mast">
-    <div class="mark">你</div>
+    <div class="mark" aria-hidden="true">4千</div>
     <h1>4QIAN</h1>
+    <button class="mini" id="b-help" aria-label="Keyboard shortcuts and help" title="Shortcuts (?)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.2 9a2.8 2.8 0 1 1 3.8 2.6c-.7.3-1 .9-1 1.6v.3"/><path d="M12 17h.01"/></svg>
+    </button>
   </header>
-  <nav class="navrow" id="nav">
+  <nav class="navrow" id="nav" aria-label="Main">
     <button data-v="setup" aria-pressed="true">Decks</button>
     <button data-v="dash" aria-pressed="false">Dashboard</button>
     <button data-v="browse" aria-pressed="false">Browse</button>
+    <button data-v="words" aria-pressed="false">Words</button>
     <button data-v="saved" aria-pressed="false">Saved</button>
   </nav>
+  <main id="main" tabindex="-1">
 
   <!-- ============ SETUP ============ -->
   <section id="v-setup" style="display:flex;flex-direction:column;gap:14px">
-    <p class="tagline">4,228 questions in English and Chinese, ranked from small talk to the
-      things you only ask someone you trust. Pick where to start — the deck heats up one rung at a time.</p>
+    <p class="tagline">4,228 questions in English and Chinese, ordered from safe openers to the things you
+      only ask someone who trusts you. Built for language exchange with people you have
+      just met — it never jumps ahead of where the conversation actually is.</p>
+
+    <div class="panel" id="start-panel">
+      <h3>New here? <span class="lbl" style="font-weight:500">takes about a minute</span></h3>
+      <p class="pmeta">4QIAN sits beside your chat window. Pick a question, paste it to whoever you are
+        talking to, and answer it yourself as well — that is the whole exchange. It keeps
+        track of what you have already asked each person so you never repeat yourself.</p>
+      <div class="act-row">
+        <button class="btn" id="b-quickstart">Start talking to someone</button>
+        <button class="ghost" id="b-tour">Show me how it works</button>
+      </div>
+    </div>
+
+    <div class="panel" id="qotd-panel">
+      <h3>Question of the day <span class="lbl" style="font-weight:500" id="qotd-meta"></span></h3>
+      <div class="qotd" id="qotd"></div>
+    </div>
+
     <div class="decks" id="decks"></div>
+
+    <div class="panel" id="who-panel">
+      <h3>Who are you talking to? <span class="lbl" style="font-weight:500" id="who-meta"></span></h3>
+      <p class="pmeta">Put their handle in and 4QIAN remembers what you have already asked
+        <em>them</em> — so you never repeat yourself with the same person, and your best
+        openers come back fresh for the next one.</p>
+      <input class="search" id="partner" type="text" maxlength="24"
+             placeholder="Their name or handle — e.g. Lin, or @linlin" autocomplete="off">
+      <div class="people" id="recent-people"></div>
+      <div class="row" style="margin-top:10px">
+        <div><b>Swap who answers each turn</b><p>In a language exchange you usually both answer.
+          This reminds you whose turn it is.</p></div>
+        <button class="sw" id="sw-tn" aria-pressed="true" aria-label="Swap turns automatically"></button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Paste into your chat <span class="lbl" style="font-weight:500">tap a card's copy button</span></h3>
+      <p class="pmeta">What the copy button puts on your clipboard, ready to paste into
+        HelloTalk, Discord or wherever you are talking.</p>
+      <div class="seg" id="copyas">
+        <button data-c="zh" aria-pressed="false">中文</button>
+        <button data-c="en" aria-pressed="false">English</button>
+        <button data-c="both" aria-pressed="true">Both</button>
+        <button data-c="all" aria-pressed="false">+ pinyin</button>
+      </div>
+      <pre class="copy-preview" id="copy-preview"></pre>
+    </div>
+
+    <div class="panel">
+      <h3>Which language are you practising?</h3>
+      <div class="seg" id="learning">
+        <button data-l="zh" aria-pressed="true">I'm learning 中文</button>
+        <button data-l="en" aria-pressed="false">I'm learning English</button>
+      </div>
+      <p class="pmeta" style="margin:9px 0 0">Sets which side of the card is hidden until you
+        try, and which language the sample answers put first.</p>
+    </div>
+
+    <div class="panel">
+      <h3>Session goal <span class="lbl" style="font-weight:500">how long a run should be</span></h3>
+      <div class="seg" id="goal">
+        <button data-g="0" aria-pressed="true">Open</button>
+        <button data-g="10" aria-pressed="false">10</button>
+        <button data-g="20" aria-pressed="false">20</button>
+        <button data-g="40" aria-pressed="false">40</button>
+      </div>
+      <p class="pmeta" style="margin:9px 0 0">A goal only paces the run — nothing stops when you
+        reach it, the bar just fills and the recap says you got there.</p>
+    </div>
 
     <div class="panel">
       <h3>Theme <span class="lbl" style="font-weight:500" id="skinname">Hazard</span></h3>
-      <div class="skins" id="skins"></div>
+      <div id="skins"></div>
+      <div class="row" style="margin-top:6px">
+        <div><b>Follow the system</b><p>Switch between a light and a dark theme with the device.</p></div>
+        <button class="sw" id="sw-auto" aria-pressed="false" aria-label="Follow the system light or dark setting"></button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Read it aloud <span class="lbl" style="font-weight:500" id="voicename">checking…</span></h3>
+      <div class="seg" id="speakmode">
+        <button data-s="off" aria-pressed="true">Off</button>
+        <button data-s="zh" aria-pressed="false">中文 only</button>
+        <button data-s="both" aria-pressed="false">Both</button>
+      </div>
+      <div class="row" style="margin-top:4px">
+        <div><b>Speak each new card</b><p>Read the question out as soon as it comes up.</p></div>
+        <button class="sw" id="sw-auto-speak" aria-pressed="false" aria-label="Toggle speaking each new card"></button>
+      </div>
+      <div class="row">
+        <div><b>Speed</b><p>Slower is easier to shadow when you are learning the tones.</p></div>
+        <div class="seg" style="flex:0 0 auto;width:auto" id="rate">
+          <button data-r="0.7" aria-pressed="false">Slow</button>
+          <button data-r="0.85" aria-pressed="true">Easy</button>
+          <button data-r="1" aria-pressed="false">Normal</button>
+        </div>
+      </div>
+      <p class="pmeta" id="speak-note" style="margin:9px 0 0"></p>
+    </div>
+
+    <div class="panel">
+      <h3>Study aids <span class="lbl" style="font-weight:500">under every card</span></h3>
+      <div class="row">
+        <div><b>Word breakdown</b><p>Split the Chinese into words, with pinyin and a gloss.</p></div>
+        <button class="sw" id="sw-vocab" aria-pressed="true" aria-label="Toggle the word breakdown"></button>
+      </div>
+      <div class="row">
+        <div><b>Sample answers</b><p>A model answer in the AREC shape — Answer, Reason, Example,
+          Conclusion — in both languages.</p></div>
+        <button class="sw" id="sw-answer" aria-pressed="true" aria-label="Toggle sample answers"></button>
+      </div>
+      <div class="row">
+        <div><b>Open it automatically</b><p>Show the study panel on every card instead of waiting
+          for a tap.</p></div>
+        <button class="sw" id="sw-studyopen" aria-pressed="false" aria-label="Toggle opening the study panel automatically"></button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Text size</h3>
+      <div class="seg" id="textsize">
+        <button data-t="s" aria-pressed="false">Small</button>
+        <button data-t="m" aria-pressed="true">Medium</button>
+        <button data-t="l" aria-pressed="false">Large</button>
+      </div>
     </div>
 
     <div class="panel">
@@ -99,11 +233,7 @@ addEventListener("unhandledrejection", function(e){
         <button class="sw" id="sw-sc" aria-pressed="true" aria-label="Toggle frequency score"></button>
       </div>
       <div class="row">
-        <div><b>Turn taking</b><p>Alternate who answers first, so it stays a trade.</p></div>
-        <button class="sw" id="sw-tn" aria-pressed="true" aria-label="Toggle turn taking"></button>
-      </div>
-      <div class="row">
-        <div><b>Track my questions</b><p>Record what you ask, so the dashboard has something to show.</p></div>
+        <div><b>Track my questions</b><p>Fill the dashboard with what you ask and when. Which questions each person has already had is kept either way — that is what stops repeats.</p></div>
         <button class="sw" id="sw-tr" aria-pressed="true" aria-label="Toggle tracking"></button>
       </div>
     </div>
@@ -120,12 +250,32 @@ addEventListener("unhandledrejection", function(e){
       Crossing into sensitivity 4 needs both of you to agree out loud.<br><br>
       <b>On a phone:</b> swipe the card right for warmer, left for cooler, up to skip.
       <b>On a keyboard:</b> <span class="k">←</span> <span class="k">→</span> to change depth,
-      <span class="k">space</span> for the next question, <span class="k">S</span> to save.
+      <span class="k">space</span> for the next question, <span class="k">S</span> to save —
+      press <span class="k">?</span> for the rest.
     </p>
+
+    <div class="panel hidden" id="install-panel">
+      <h3>Install it</h3>
+      <p class="pmeta">Put 4QIAN on the home screen so it opens like an app and works with no
+        connection at all.</p>
+      <button class="btn sm" id="b-install">Install 4QIAN</button>
+    </div>
+
+    <div class="panel">
+      <h3>About</h3>
+      <div class="about" id="about"></div>
+    </div>
   </section>
 
   <!-- ============ SESSION ============ -->
   <section id="v-session" class="hidden" style="flex-direction:column;gap:14px">
+    <div class="goal" id="goalbar">
+      <span class="gl" id="goal-l">This run</span>
+      <span class="gv" id="goal-v">0 asked · 0:00</span>
+      <span class="gtrack"><span class="gfill" id="goal-fill" style="width:0%"></span></span>
+      <span class="gwho" id="goal-who"></span>
+    </div>
+
     <div class="gauge">
       <div class="gauge-head">
         <strong id="deck-name">Coffee chat</strong>
@@ -134,9 +284,23 @@ addEventListener("unhandledrejection", function(e){
       <div class="rungs" id="rungs"></div>
     </div>
 
-    <button class="turn" id="turn">
-      <span class="pip"></span><b id="turn-t">You answer first</b><span>tap to swap</span>
-    </button>
+    <div class="turnbar" id="turnbar">
+      <span class="lbl">Whose turn to answer?</span>
+      <div class="seg turn-seg" id="turn">
+        <button data-t="0" aria-pressed="true" id="turn-a">You</button>
+        <button data-t="1" aria-pressed="false" id="turn-b">Them</button>
+      </div>
+    </div>
+
+    <div class="sendbar" id="sendbar">
+      <span class="lbl">Send it</span>
+      <div class="send-btns">
+        <button class="sendb" data-send="zh">中文</button>
+        <button class="sendb" data-send="en">English</button>
+        <button class="sendb" data-send="both">Both</button>
+        <button class="sendb" data-send="all">+ pinyin</button>
+      </div>
+    </div>
 
     <article class="card" id="card">
       <div class="card-top" id="card-top"></div>
@@ -150,8 +314,14 @@ addEventListener("unhandledrejection", function(e){
         <code id="q-frame"></code>
         <div class="foot-acts">
           <span class="q-id" id="q-id"></span>
+          <button class="mini" id="b-speak" aria-label="Read this question aloud" title="Read aloud (P)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+          </button>
           <button class="mini" id="b-save" aria-pressed="false" aria-label="Save this question" title="Save (S)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          </button>
+          <button class="mini" id="b-legend" aria-label="What do the labels on this card mean?" title="What do these labels mean?">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.2 9a2.8 2.8 0 1 1 3.8 2.6c-.7.3-1 .9-1 1.6v.3"/><path d="M12 17h.01"/></svg>
           </button>
           <button class="mini" id="b-copy" aria-label="Copy this question" title="Copy">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
@@ -160,19 +330,40 @@ addEventListener("unhandledrejection", function(e){
       </div>
     </article>
 
-    <div class="controls">
-      <button class="ctl cool" id="b-cool"><b>← Cooler</b><small>Back off a rung</small></button>
-      <button class="ctl" id="b-skip"><b>Skip</b><small>Not this one</small></button>
-      <button class="ctl warm" id="b-warm"><b>Warmer →</b><small>One step deeper</small></button>
+    <div class="study" id="study">
+      <button class="study-h" id="study-toggle" aria-expanded="false" aria-controls="study-body">
+        <span class="lbl">Study this question</span>
+        <span class="study-sum" id="study-sum"></span>
+        <span class="chev" aria-hidden="true"></span>
+      </button>
+      <div class="study-in hidden" id="study-body">
+        <div class="seg mini-seg" id="study-tabs">
+          <button data-s="words" aria-pressed="true">Words</button>
+          <button data-s="answer" aria-pressed="false">Sample answer</button>
+        </div>
+        <div id="study-pane"></div>
+      </div>
     </div>
-    <button class="next" id="b-next">Next question, same depth</button>
+
+    <p class="pmeta ctl-lead" id="ctl-lead">Answered it? Now pick where to go next.</p>
+    <div id="controls-wrap">
+    <div class="controls">
+      <button class="ctl cool" id="b-cool"><b>← Lighter</b><small>Ease back a step</small></button>
+      <button class="ctl" id="b-skip"><b>Skip</b><small>Don't want this one</small></button>
+      <button class="ctl warm" id="b-warm"><b>Deeper →</b><small>Go one step further</small></button>
+    </div>
+    <button class="next" id="b-next">Another question like this one</button>
+    </div>
     <div class="stats">
       <span>Asked <b id="s-asked">0</b></span>
-      <span>Depth <b id="s-depth">1</b>/5</span>
-      <span><b id="s-left">0</b> left here</span>
+      <span>Level <b id="s-depth">1</b> of 5</span>
+      <span><b id="s-left">0</b> more at this level</span>
       <span>Saved <b id="s-saved">0</b></span>
     </div>
-    <button class="ghost" id="b-end">End session</button>
+    <div class="act-row" style="justify-content:center">
+      <button class="ghost" id="b-back" disabled>Previous card</button>
+      <button class="ghost" id="b-end">End session</button>
+    </div>
   </section>
 
   <!-- ============ DASHBOARD ============ -->
@@ -195,6 +386,30 @@ addEventListener("unhandledrejection", function(e){
         <i style="background:var(--acc);opacity:.65"></i>
         <i style="background:var(--acc)"></i><span>more</span>
       </div>
+    </div>
+
+    <!-- rhythm --------------------------------------------------- -->
+    <div class="panel">
+      <h3>Your rhythm <span class="lbl" style="font-weight:500" id="rhythm-sum"></span></h3>
+      <p class="pmeta">The last 14 days, then 12 weeks, then the hour of day you tend to practise.</p>
+      <div class="lbl">Last 14 days</div>
+      <div class="ribbon" id="ribbon"></div>
+      <div class="ribbonx" id="ribbonx"></div>
+      <div class="lbl" style="margin-top:16px">Questions per week · last 12 weeks</div>
+      <div class="spark" id="spark"></div>
+      <div class="sparkx" id="sparkx"></div>
+      <div class="lbl" style="margin-top:16px">When you practise</div>
+      <div class="clock" id="clock"></div>
+      <div class="clockx"><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div>
+    </div>
+
+    <!-- outcomes ------------------------------------------------- -->
+    <div class="panel">
+      <h3>How it goes <span class="lbl" style="font-weight:500" id="mix-sum"></span></h3>
+      <p class="pmeta">What you did with each card, and how long you sat with it.</p>
+      <div class="mix" id="mix"></div>
+      <div class="mixkey" id="mixkey"></div>
+      <div class="about" id="pace" style="margin-top:14px"></div>
     </div>
 
     <!-- high frequency ------------------------------------------ -->
@@ -231,6 +446,21 @@ addEventListener("unhandledrejection", function(e){
       <button class="ghost" id="cats-more" style="margin-top:10px">Show all 30 topics</button>
     </div>
 
+    <div class="panel">
+      <h3>People <span class="lbl" style="font-weight:500" id="dpeople-sum"></span></h3>
+      <p class="pmeta">Everyone you have talked to, and how far you got. Tap one to make them
+        the current conversation — the deck will skip everything you have already used on them.</p>
+      <div class="plist" id="dpeople"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Vocabulary <span class="lbl" style="font-weight:500" id="dvoc-sum"></span></h3>
+      <p class="pmeta">Words from the bank that appear in questions you have been through.
+        Tap through to the full list to see what is left.</p>
+      <div class="blist" id="dvoc"></div>
+      <button class="ghost" data-go="words" style="margin-top:10px">Open the word list</button>
+    </div>
+
     <!-- the record ----------------------------------------------- -->
     <div class="panel">
       <h3>The record <span class="lbl" style="font-weight:500" id="log-sum"></span></h3>
@@ -264,6 +494,7 @@ addEventListener("unhandledrejection", function(e){
         <button class="ghost danger" id="b-wipe">Erase my record</button>
       </div>
       <input type="file" id="imp-file" accept="application/json" class="hidden">
+      <p class="pmeta" style="margin:12px 0 0" id="storage-note"></p>
     </div>
   </section>
 
@@ -274,15 +505,48 @@ addEventListener("unhandledrejection", function(e){
     <div class="filters" id="f-stage"><span class="lbl">Stage</span></div>
     <div class="filters" id="f-freq"><span class="lbl">Frequency</span></div>
     <div class="filters" id="f-sort"><span class="lbl">Sort</span></div>
+    <div class="act-row">
+      <button class="btn sm" id="b-practice">Practice these</button>
+      <button class="ghost" id="b-random">Surprise me</button>
+      <button class="ghost" id="b-clearf">Clear filters</button>
+    </div>
     <div class="lbl" id="hitcount">4,228 questions</div>
     <div class="hits" id="hits"></div>
   </section>
 
+  <!-- ============ WORDS ============ -->
+  <section id="v-words" class="hidden" style="flex-direction:column;gap:12px">
+    <div class="panel">
+      <h3>Your vocabulary <span class="lbl" style="font-weight:500" id="voc-sum"></span></h3>
+      <p class="pmeta">Every word here occurs in the deck. A word counts as met once you have
+        been through a question that uses it, so this fills up on its own as you talk.</p>
+      <div class="blist" id="voc-levels"></div>
+    </div>
+
+    <input class="search" id="voc-q" type="search" placeholder="Search 中文, pinyin, or English…" autocomplete="off">
+    <div class="filters" id="voc-lv"><span class="lbl">Level</span></div>
+    <div class="filters" id="voc-st">
+      <span class="lbl">Status</span>
+      <button class="fchip" data-w="all" aria-pressed="true">All</button>
+      <button class="fchip" data-w="met" aria-pressed="false">Met</button>
+      <button class="fchip" data-w="new" aria-pressed="false">Not yet</button>
+    </div>
+    <div class="lbl" id="voc-count"></div>
+    <div class="words" id="voc-list"></div>
+    <button class="more hidden" id="voc-more">Show more</button>
+  </section>
+
   <!-- ============ SAVED ============ -->
   <section id="v-saved" class="hidden" style="flex-direction:column;gap:12px">
+    <div class="act-row" id="saved-acts">
+      <button class="btn sm" id="b-practice-saved">Practice saved</button>
+      <button class="ghost" id="b-exp-saved">Export as text</button>
+      <button class="ghost danger" id="b-clear-saved">Clear all</button>
+    </div>
     <div class="lbl" id="savedcount">Nothing saved yet</div>
     <div class="hits" id="savedlist"></div>
   </section>
+  </main>
 </div>
 
 <dialog id="gate">
@@ -292,11 +556,12 @@ addEventListener("unhandledrejection", function(e){
       <span class="lbl" style="color:var(--acc)">Consent check</span>
       <h2 id="gate-h">This is where it gets personal</h2>
       <p id="gate-p"></p>
-      <p class="fine">Say it out loud to each other before you tap through. Either of you can say
-        no and nothing is lost — you just stay at this depth.</p>
+      <p class="fine">With someone you have only just met online, ask before you go here — and
+        read a non-answer as a no. Staying lighter costs you nothing, and a stranger who
+        feels pushed will simply stop replying.</p>
       <div class="acts">
-        <button class="no" value="no" type="submit">Stay here</button>
-        <button class="go" value="yes" type="submit">We're both in</button>
+        <button class="no" value="no" type="submit">Stay lighter</button>
+        <button class="go" value="yes" type="submit">They're happy to</button>
       </div>
     </div>
   </form>
@@ -332,9 +597,128 @@ addEventListener("unhandledrejection", function(e){
   </form>
 </dialog>
 
-<div class="toast" id="toast"></div>
+<dialog id="legend">
+  <form method="dialog" class="gate">
+    <div class="hazard"></div>
+    <div class="gate-body">
+      <span class="lbl" style="color:var(--acc)">Reference</span>
+      <h2>What the labels mean</h2>
+      <div class="keys" id="legend-body">
+        <div class="keysec">On the card</div>
+        <div class="keyrow"><span><span class="chip depth" style="--dc:var(--h2)">Warm-up</span></span>
+          <span><b>How personal the question is</b>, from Icebreaker up to Intimate.
+            The deck only ever moves one step at a time.</span></div>
+        <div class="keyrow"><span><span class="chip">2 · Light</span></span>
+          <span><b>Sensitivity, 1 to 5.</b> How badly it could land with someone who
+            wasn't expecting it. Anything above 3 needs you both to agree first.</span></div>
+        <div class="keyrow"><span><span class="chip">Food, cooking &amp; dining</span></span>
+          <span><b>The topic.</b> You can switch topics off in Decks → Mute topics.</span></div>
+        <div class="keyrow"><span><span class="chip">freq 86</span></span>
+          <span><b>How common this question is</b> in real conversation, scored 0 to 100.
+            A high score means you will genuinely hear it, so it is worth learning first.</span></div>
+        <div class="keyrow"><span><span class="chip">Prompt</span></span>
+          <span><b>An invitation, not a question.</b> "Tell me about…" rather than
+            something with a yes-or-no answer.</span></div>
+        <div class="keyrow"><span><span class="chip">asked 3×</span></span>
+          <span><b>You have had this one before</b>, and how many times.</span></div>
+        <div class="keyrow"><span><code style="font-size:11px;color:var(--muted)">What is your …?</code></span>
+          <span><b>The grammar pattern</b> the question is built on, at the bottom of the
+            card. Useful if you are drilling a shape rather than a topic.</span></div>
+        <div class="keysec">The level gauge</div>
+        <div class="keyrow"><span><b style="font-size:12px">5 rungs</b></span>
+          <span>Every deck covers a range of levels. Lit rungs are ones you have reached; the
+            ones marked <b>not in this deck</b> need a different deck to get to.</span></div>
+        <div class="keyrow"><span><b style="font-size:12px">12 more</b></span>
+          <span>How many questions are left at that level that you have not seen yet.</span></div>
+      </div>
+      <div class="acts">
+        <button class="go" value="ok" type="submit" autofocus>Got it</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="word">
+  <form method="dialog" class="gate">
+    <div class="hazard"></div>
+    <div class="gate-body">
+      <div class="wordhead">
+        <span class="whz" id="word-hz"></span>
+        <span class="wpy" id="word-py"></span>
+        <span class="wen" id="word-en"></span>
+        <span class="lbl" id="word-meta"></span>
+      </div>
+      <span class="lbl" style="display:flex">Where it turns up <span style="font-weight:500;margin-left:auto" id="word-n"></span></span>
+      <div class="uses" id="word-uses"></div>
+      <div class="acts">
+        <button class="go" value="ok" type="submit" autofocus>Close</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="help">
+  <form method="dialog" class="gate">
+    <div class="hazard"></div>
+    <div class="gate-body">
+      <span class="lbl" style="color:var(--acc)">Reference</span>
+      <h2>Shortcuts</h2>
+      <div class="keys">
+        <div class="keysec">In a session</div>
+        <div class="keyrow"><span><kbd>→</kbd></span><span>Warmer — one rung deeper</span></div>
+        <div class="keyrow"><span><kbd>←</kbd></span><span>Cooler — back off a rung</span></div>
+        <div class="keyrow"><span><kbd>space</kbd></span><span>Next question, same depth</span></div>
+        <div class="keyrow"><span><kbd>X</kbd></span><span>Skip this one</span></div>
+        <div class="keyrow"><span><kbd>S</kbd></span><span>Save it for later</span></div>
+        <div class="keyrow"><span><kbd>P</kbd></span><span>Read it aloud</span></div>
+        <div class="keyrow"><span><kbd>C</kbd></span><span>Copy the question</span></div>
+        <div class="keyrow"><span><kbd>R</kbd></span><span>Reveal the other language</span></div>
+        <div class="keyrow"><span><kbd>T</kbd></span><span>Swap who answers first</span></div>
+        <div class="keyrow"><span><kbd>B</kbd></span><span>Back to the previous card</span></div>
+        <div class="keysec">Anywhere</div>
+        <div class="keyrow"><span><kbd>1</kbd>–<kbd>5</kbd></span><span>Decks · Dashboard · Browse · Words · Saved</span></div>
+        <div class="keyrow"><span><kbd>/</kbd></span><span>Search the corpus</span></div>
+        <div class="keyrow"><span><kbd>?</kbd></span><span>This list</span></div>
+        <div class="keyrow"><span><kbd>esc</kbd></span><span>Back to Decks</span></div>
+        <div class="keysec">Not sure how any of this works?</div>
+        <div class="keyrow"><span><kbd>tour</kbd></span><span>Decks → <b>Show me how it works</b> walks you through it in seven steps</span></div>
+        <div class="keysec">On a phone</div>
+        <div class="keyrow"><span><kbd>swipe →</kbd></span><span>Warmer</span></div>
+        <div class="keyrow"><span><kbd>swipe ←</kbd></span><span>Cooler</span></div>
+        <div class="keyrow"><span><kbd>swipe ↑</kbd></span><span>Skip</span></div>
+      </div>
+      <div class="acts">
+        <!-- Without a target of its own the dialog focuses the scrollable
+             list, which draws a focus ring around the whole sheet. -->
+        <button class="go" value="ok" type="submit" autofocus>Got it</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<!-- Guided tour. A spotlight cut out of a full-screen dim, plus a caption that
+     parks itself above or below whatever is being pointed at. -->
+<div class="tour hidden" id="tour" role="dialog" aria-modal="true" aria-labelledby="tour-h">
+  <div class="tour-dim" id="tour-dim"></div>
+  <div class="tour-ring" id="tour-ring"></div>
+  <div class="tour-box" id="tour-box">
+    <span class="lbl" id="tour-step">Step 1 of 7</span>
+    <h3 id="tour-h">Welcome</h3>
+    <p id="tour-p"></p>
+    <div class="tour-acts">
+      <button class="ghost" id="tour-skip">Skip</button>
+      <span class="tour-dots" id="tour-dots"></span>
+      <button class="ghost" id="tour-back">Back</button>
+      <button class="btn sm" id="tour-next">Next</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="./questions.js"></script>
+<script src="./vocab.js"></script>
+<script src="./answers.js"></script>
 <script src="./track.js"></script>
 <script src="./core.js"></script>
 <script src="./dashboard.js"></script>

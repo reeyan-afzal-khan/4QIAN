@@ -25,10 +25,22 @@
     }
 
     /* The page paints its own background under the status bar, so the bar
-       needs light content and no reserved strip. */
+       has to match whichever palette is live — a light theme under a bar
+       still set to light-on-black is the one place the seam shows. Exposed
+       as a hook the theme code calls, rather than read from there, so the
+       web build carries no Capacitor references. */
     if(P.StatusBar && P.StatusBar.setStyle){
-      P.StatusBar.setStyle({style: "DARK"}).catch(()=>{});
-      P.StatusBar.setBackgroundColor({color: "#08080A"}).catch(()=>{});
+      window.cdgNativeTheme = function(skin){
+        // Capacitor names the style after the theme, not the text: DARK is
+        // the light-text-on-a-dark-bar one.
+        P.StatusBar.setStyle({style: skin.dark ? "DARK" : "LIGHT"}).catch(()=>{});
+        P.StatusBar.setBackgroundColor({color: skin.bg}).catch(()=>{});
+      };
+      /* boot.js has already painted by the time this file runs, so catch up
+         with whatever it landed on instead of assuming the default. */
+      window.cdgNativeTheme(typeof skinOf === "function"
+        ? skinOf(document.documentElement.dataset.skin || "hazard")
+        : {dark: true, bg: "#08080A"});
     }
   }
 

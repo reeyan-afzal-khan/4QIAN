@@ -15,8 +15,9 @@
  */
 const CACHE = "4qian-__BUILD__";
 const SHELL = "./index.html";
-const CODE  = ["./index.html", "./styles.css", "./questions.js", "./track.js",
-               "./core.js", "./dashboard.js", "./boot.js", "./native.js"];
+const CODE  = ["./index.html", "./styles.css", "./questions.js", "./vocab.js",
+               "./answers.js", "./track.js", "./core.js", "./dashboard.js",
+               "./boot.js", "./native.js"];
 const ASSETS = CODE.concat(["./manifest.webmanifest", "./icon-192.png",
                             "./icon-512.png", "./icon-maskable.png"]);
 
