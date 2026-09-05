@@ -1,7 +1,5 @@
 .claude/
 node_modules/
-desktop/node_modules/
-desktop/www/
 release/
 extracted/
 tools/

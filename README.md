@@ -8,17 +8,16 @@ language one of you is still learning. It keeps a separate history for every per
 talk to, hands you the question in a form you can paste, and never jumps ahead of where
 the conversation actually is.
 
-Ships as three things from one source tree:
+Ships as two things from one source tree:
 
 | Target | Output | How it runs |
 | --- | --- | --- |
 | Web / PWA | `release/web/` + `4QIAN-web.zip` | Any static host, or opened from disk. Installable from Chrome on Android. |
-| Windows | `release/windows/4QIAN-Setup-4.0.0.exe` (installer)<br>`release/windows/4QIAN-portable-4.0.0.exe` (no install) | Electron. Offline, no server. |
 | Android | `release/android/4QIAN-4.0.0.apk` | Capacitor. Signed, sideloadable. |
 
-The application id is `com.fourqian.app` on both Android and Windows. It is not `com.4qian.app`
-because a package segment cannot begin with a digit — that is a Java identifier rule, not a
-preference, so the spelled-out form is the closest legal match.
+The application id is `com.fourqian.app`. It is not `com.4qian.app` because a package segment
+cannot begin with a digit — that is a Java identifier rule, not a preference, so the
+spelled-out form is the closest legal match.
 
 Everything is offline-first. The question deck is a local file and your record lives in
 `localStorage` on the device — nothing is uploaded anywhere, and there is no account.
@@ -47,7 +46,7 @@ app/                the whole application — this is the only thing you edit
   core.js           setup, themes, speech, the session loop, vocabulary, the tour, browse, saved
   dashboard.js      aggregation, charts, the record log, export/import
   boot.js           event wiring, keyboard map and start-up
-  native.js         Android back button + status bar + Electron menu; a no-op in a browser
+  native.js         Android back button and status bar; a no-op in a browser
   sw.js             service worker
 build.mjs           stages app/ into every target, stamps the SW cache name
 scripts/
@@ -66,7 +65,6 @@ scripts/
                     validate the word bank against the corpus
   make-icons.mjs    draws the 4千 mark and writes the three app icons
   android-brand.mjs (icons/splash/theme), android-build.mjs
-desktop/            Electron main + preload + electron-builder config
 android/            Capacitor project (generated, then branded)
 tools/              JDK 21 + Android SDK used by the APK build (not in git)
 ```
@@ -77,7 +75,7 @@ reviewable and repeatable rather than done by hand across four thousand rows; ea
 `--check` or dry-run mode that prints its diff, and only writes with `--write`.
 
 `app/` is a folder of plain files with no build step, no bundler and no framework. It runs
-from `file://`, from a static host, inside Electron and inside a WebView unchanged.
+from `file://`, from a static host and inside a WebView unchanged.
 `build.mjs` only copies it and stamps one constant.
 
 ---
@@ -499,7 +497,7 @@ quickly does not serialise the whole record on every tap. Settings live in a sep
 (`4qian.v1`) so a toggle does not rewrite a 200 KB record. Both keys were `cdg.*` before the
 rename to 4QIAN and are migrated on first load, so an existing record carries over.
 
-Import **merges** rather than replaces — moving a phone backup onto a desktop that has its
+Import **merges** rather than replaces — moving a phone backup onto a laptop that has its
 own history keeps both.
 
 ---
@@ -508,7 +506,6 @@ own history keeps both.
 
 ```bash
 npm install
-npm --prefix desktop install
 ```
 
 ### Web
@@ -525,22 +522,6 @@ Local preview:
 
 ```bash
 npm run serve
-```
-
-### Windows
-
-```bash
-npm run desktop:win
-```
-
-Produces an NSIS installer and a portable `.exe` in `release/windows/`. Neither is
-code-signed, so SmartScreen will warn on first run — *More info → Run anyway*. To silence
-that permanently you need a code-signing certificate.
-
-Run it without packaging:
-
-```bash
-npm run desktop
 ```
 
 ### Android

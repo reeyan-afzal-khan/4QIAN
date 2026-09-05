@@ -3,12 +3,10 @@
   "version": "4.0.0",
   "private": true,
   "type": "module",
-  "description": "Build scripts for the 4QIAN web app, Windows desktop app and Android app.",
+  "description": "Build scripts for the 4QIAN web app and Android app.",
   "scripts": {
     "build": "node build.mjs",
     "serve": "npx -y serve app -l 5178",
-    "desktop": "npm run build && npm --prefix desktop start",
-    "desktop:win": "npm run build && npm --prefix desktop run dist",
     "android:sync": "npm run build && npx cap sync android",
     "android:apk": "node scripts/android-build.mjs"
   },

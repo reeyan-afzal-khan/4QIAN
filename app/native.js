@@ -1,7 +1,7 @@
-/* native.js — the bits that only exist inside a native shell.
+/* native.js — the bits that only exist inside the Android shell.
  *
- * Loaded in every build and does nothing in a browser: the page is the same
- * page everywhere, and the shells only add to it. Kept out of boot.js so the
+ * Loaded in both builds and does nothing in a browser: the page is the same
+ * page everywhere, and the shell only adds to it. Kept out of boot.js so the
  * web build is not carrying dead conditionals through its hot path. */
 (function(){
 
@@ -42,16 +42,5 @@
         ? skinOf(document.documentElement.dataset.skin || "hazard")
         : {dark: true, bg: "#08080A"});
     }
-  }
-
-  /* ---------------- Windows (Electron) ---------------- */
-  if(window.cdgDesktop && window.cdgDesktop.onMenu){
-    window.cdgDesktop.onMenu(which => {
-      if(which === "export"){
-        if(typeof show === "function") show("dash");
-        const b = document.getElementById("b-exp-json");
-        if(b) b.click();
-      }
-    });
   }
 })();

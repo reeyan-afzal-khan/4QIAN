@@ -468,7 +468,7 @@ $("#b-install").addEventListener("click", async () => {
 
 /* ---------------- about ---------------- */
 function renderAbout(){
-  const where = window.Capacitor ? "Android" : window.cdgDesktop ? "Windows"
+  const where = window.Capacitor ? "Android"
               : matchMedia("(display-mode: standalone)").matches ? "Installed web app"
               : location.protocol === "file:" ? "Local files" : "Web";
   const rows = [
@@ -476,7 +476,11 @@ function renderAbout(){
     ["Topics", nf(DATA.categories.length)],
     ["Grammar patterns", nf(DATA.frames.length)],
     ["Glossed words", nf(VOCAB.size)],
-    ["Model answers", nf(ANS.count)],
+    /* Every question reaches a full AREC answer; 55 of them are written for
+       that exact question rather than for its topic and shape. Reporting only
+       the 55 undersells the coverage; reporting only the total oversells it. */
+    ["Model answers", "All " + nf(DATA.q.length)],
+    ["Question-specific", nf(ANS.count)],
     ["Decks", nf(DATA.decks.length)],
     ["Deck version", esc(String(DATA.version || "—"))],
     ["Running as", esc(where)],

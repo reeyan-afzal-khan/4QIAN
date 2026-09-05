@@ -532,15 +532,10 @@ function renderStorage(){
 
 /* ---------------- file out / in ---------------- */
 
-/* Three hosts, three ways to put a file on disk. The browser path is last
+/* Two hosts, two ways to put a file on disk. The browser path is last
    because it is the only one that cannot report where the file went. */
 async function saveFile(name, mime, text){
   try{
-    if(window.cdgDesktop && window.cdgDesktop.saveFile){       // Electron
-      const where = await window.cdgDesktop.saveFile(name, text);
-      toast(where ? "Saved to " + where : "Save cancelled");
-      return;
-    }
     const cap = window.Capacitor && window.Capacitor.Plugins;
     if(cap && cap.Filesystem){                                  // Android
       await cap.Filesystem.writeFile({

@@ -1,8 +1,7 @@
-/* build.mjs — stage the web app into every target that ships it.
+/* build.mjs — stage the web app for the two targets that ship it.
  *
  *   app/  ->  release/web/          a plain folder + zip, for a static host,
  *                                  and the webDir Capacitor copies into the APK
- *         ->  desktop/www/          what the Electron window loads
  *
  * The one transform on the way through is stamping sw.js: the cache name is
  * derived from the hash of the files it caches, so shipping new code always
@@ -18,7 +17,6 @@ const ROOT = dirname(fileURLToPath(import.meta.url));
 const SRC  = join(ROOT, "app");
 const TARGETS = [
   join(ROOT, "release", "web"),
-  join(ROOT, "desktop", "www"),
 ];
 
 const files = readdirSync(SRC).filter(f => statSync(join(SRC, f)).isFile());
