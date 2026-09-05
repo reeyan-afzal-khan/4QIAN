@@ -72,17 +72,45 @@ addEventListener("unhandledrejection", function(e){
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.2 9a2.8 2.8 0 1 1 3.8 2.6c-.7.3-1 .9-1 1.6v.3"/><path d="M12 17h.01"/></svg>
     </button>
   </header>
-  <nav class="navrow" id="nav" aria-label="Main">
-    <button data-v="setup" aria-pressed="true">Decks</button>
-    <button data-v="dash" aria-pressed="false">Dashboard</button>
-    <button data-v="browse" aria-pressed="false">Browse</button>
-    <button data-v="words" aria-pressed="false">Words</button>
-    <button data-v="saved" aria-pressed="false">Saved</button>
-  </nav>
+  <div class="rail">
+    <nav class="navrow" id="nav" aria-label="Main">
+      <button data-v="setup" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="13" height="16" rx="2"/><path d="M19 7v11a2 2 0 0 1-2 2H8"/></svg><span>Decks</span></button>
+      <button data-v="dash" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>Dashboard</span></button>
+      <button data-v="insights" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18"/><path d="M4 15l5-6 4 4 6-7"/></svg><span>Insights</span></button>
+      <button data-v="browse" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg><span>Browse</span></button>
+      <button data-v="words" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 5.5v15"/><path d="M9 8h6"/></svg><span>Words</span></button>
+      <button data-v="saved" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4.5L6 21z"/></svg><span>Saved</span></button>
+      <button data-v="settings" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.9 19.3a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.7 8.9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15.1 4.7a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9a1.7 1.7 0 0 0 1.56 1.03H21a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15z"/></svg><span>Settings</span></button>
+    </nav>
+    <div class="railcard" id="railcard">
+      <button class="rc-you" id="rc-you" title="Open your profile">
+        <span class="rc-face" id="rc-face">4</span>
+        <span class="rc-id"><b id="rc-name">You</b><small id="rc-sub">Every level</small></span>
+      </button>
+
+      <div class="rc-day">
+        <div class="rc-row"><span class="lbl">Today</span><b id="rc-today">0</b></div>
+        <div class="rc-bar" id="rc-bar" hidden><i id="rc-fill"></i></div>
+        <div class="rc-facts">
+          <span><b id="rc-streak">0</b> day streak</span>
+          <span><b id="rc-cover">0%</b> of 4,228</span>
+        </div>
+      </div>
+
+      <button class="rc-link" id="rc-folder">
+        <span class="rc-dot" id="rc-fdot"></span>
+        <span class="rc-t"><b>Export folder</b><small id="rc-folder-s">Downloads</small></span>
+      </button>
+      <button class="rc-link" id="rc-drive">
+        <span class="rc-dot" id="rc-ddot"></span>
+        <span class="rc-t"><b>Google&nbsp;Drive</b><small id="rc-drive-s">Off</small></span>
+      </button>
+    </div>
+  </div>
   <main id="main" tabindex="-1">
 
   <!-- ============ SETUP ============ -->
-  <section id="v-setup" style="display:flex;flex-direction:column;gap:14px">
+  <section id="v-setup">
     <p class="tagline">4,228 questions in English and Chinese, ordered from safe openers to the things you
       only ask someone who trusts you. Built for language exchange with people you have
       just met — it never jumps ahead of where the conversation actually is.</p>
@@ -269,7 +297,7 @@ addEventListener("unhandledrejection", function(e){
   </section>
 
   <!-- ============ SESSION ============ -->
-  <section id="v-session" class="hidden" style="flex-direction:column;gap:14px">
+  <section id="v-session" class="hidden">
     <div class="goal" id="goalbar">
       <span class="gl" id="goal-l">This run</span>
       <span class="gv" id="goal-v">0 asked · 0:00</span>
@@ -373,6 +401,9 @@ addEventListener("unhandledrejection", function(e){
       <h2>Your record</h2>
       <span class="lbl" id="dash-since">no sessions yet</span>
     </div>
+    <p class="pmeta" style="margin:-4px 0 0">This page is the summary. For the same record as
+      charts you can filter and interrogate — by date, person and deck —
+      <button class="linky" id="b-go-insights">open Insights</button>.</p>
 
     <div class="kpis" id="kpis"></div>
 
@@ -487,20 +518,198 @@ addEventListener("unhandledrejection", function(e){
     <div class="panel">
       <h3>Your data</h3>
       <p class="pmeta">Everything is stored on this device only — nothing is uploaded anywhere.
-        Export moves your record to another device.</p>
+        The CSV is both a spreadsheet you can read and a full backup: import it here and the
+        whole dashboard comes back, sessions and people included. Importing <b>merges</b>,
+        so moving a phone's record onto a laptop keeps both.</p>
       <div class="datarow">
-        <button class="ghost" id="b-exp-json">Export JSON</button>
         <button class="ghost" id="b-exp-csv">Export CSV</button>
-        <button class="ghost" id="b-imp">Import a backup</button>
+        <button class="ghost" id="b-imp">Import a CSV</button>
         <button class="ghost danger" id="b-wipe">Erase my record</button>
       </div>
-      <input type="file" id="imp-file" accept="application/json" class="hidden">
+
+      <!-- Where the CSV goes. Inside a Drive mount, this is the whole sync. -->
+      <div class="fold-row" id="fold-row">
+        <div class="fold-what">
+          <b id="fold-name">Exports go to your downloads</b>
+          <p class="pmeta" id="fold-note" style="margin:3px 0 0"></p>
+        </div>
+        <div class="fold-acts">
+          <button class="ghost sm hidden" id="b-fold-reconnect">Reconnect folder</button>
+          <button class="ghost sm" id="b-fold-pick">Choose a folder</button>
+          <button class="ghost sm hidden" id="b-fold-forget">Stop using it</button>
+        </div>
+      </div>
+      <input type="file" id="imp-file" accept=".csv,text/csv,.json,application/json" class="hidden">
       <p class="pmeta" style="margin:12px 0 0" id="storage-note"></p>
+    </div>
+
+    <div class="panel" id="drive-panel">
+      <h3>Google Drive folder <span class="lbl" style="font-weight:500" id="dr-state">off</span></h3>
+      <p class="pmeta">Keeps one CSV per device in a Drive folder, so your record follows you
+        between the phone and the browser. It goes through a small script you deploy once
+        under your own Google account — the app never sees a Google login, and nothing
+        leaves this device until you paste a URL in here. Setup is in <b>README.md</b>.</p>
+
+      <div class="names" style="grid-template-columns:1fr">
+        <label>Web app URL
+          <input class="search" id="dr-url" type="url" spellcheck="false"
+                 placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off"></label>
+      </div>
+      <div class="names" style="margin-top:9px">
+        <label>Shared secret
+          <input class="search" id="dr-token" type="text" spellcheck="false"
+                 placeholder="the TOKEN from the script" autocomplete="off"></label>
+        <label>This device
+          <input class="search" id="dr-device" type="text" maxlength="32" autocomplete="off"></label>
+      </div>
+      <p class="pmeta" style="margin:8px 0 0" id="dr-mine"></p>
+
+      <div class="act-row" style="margin-top:11px">
+        <button class="btn sm" id="dr-sync">Sync with the folder</button>
+        <button class="ghost" id="dr-upload">Upload only</button>
+        <button class="ghost" id="dr-test">Test connection</button>
+        <button class="ghost" id="dr-refresh">Refresh list</button>
+      </div>
+
+      <div class="drive-files" id="dr-files"></div>
+      <p class="pmeta" id="dr-note" style="margin:10px 0 0"></p>
+    </div>
+
+  </section>
+
+  <!-- ============ INSIGHTS ============ -->
+  <section id="v-insights" class="hidden dash">
+    <div class="dash-h">
+      <h2>Insights</h2>
+      <span class="lbl" id="ins-scope">everything</span>
+    </div>
+
+    <!-- Filters live in one row above everything and scope every chart below,
+         so no two panels can ever disagree about which slice they are showing. -->
+    <div class="panel ins-filters">
+      <div class="ins-frow">
+        <div class="ins-fgroup">
+          <span class="ins-flabel">Range</span>
+          <div class="seg mini-seg" id="ins-range">
+            <button data-r="7" aria-pressed="false">7 days</button>
+            <button data-r="30" aria-pressed="false">30 days</button>
+            <button data-r="90" aria-pressed="false">90 days</button>
+            <button data-r="0" aria-pressed="true">All</button>
+          </div>
+        </div>
+        <div class="ins-fgroup">
+          <span class="ins-flabel">Person</span>
+          <select class="ins-sel" id="ins-person"><option value="">Everyone</option></select>
+        </div>
+        <div class="ins-fgroup">
+          <span class="ins-flabel">Deck</span>
+          <select class="ins-sel" id="ins-deck"><option value="">Every deck</option></select>
+        </div>
+        <div class="ins-fgroup ins-fright">
+          <button class="ghost sm" id="ins-reset">Clear filters</button>
+          <button class="ghost sm" id="ins-table-toggle" aria-pressed="false">Table view</button>
+          <button class="ghost sm" id="ins-export">Export this slice</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="kpis" id="ins-kpis"></div>
+
+    <div class="panel">
+      <h3>Questions per day <span class="lbl" style="font-weight:500" id="ins-trend-sum"></span></h3>
+      <p class="pmeta">Every card you turned over, by the day you turned it. Hover the chart
+        to read any day.</p>
+      <div class="chart wide" id="ins-trend"></div>
+    </div>
+
+    <div class="ins-two">
+      <div class="panel">
+        <h3>What you did with each card</h3>
+        <p class="pmeta">Asked it, went deeper, eased off, or skipped.</p>
+        <div class="chart" id="ins-outcome"></div>
+      </div>
+      <div class="panel">
+        <h3>How deep you went</h3>
+        <p class="pmeta">Sensitivity 1 to 5, from safe ground to the things you only ask
+          someone who trusts you.</p>
+        <div class="chart" id="ins-depth"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Busiest topics <span class="lbl" style="font-weight:500" id="ins-topic-sum"></span></h3>
+      <p class="pmeta">Where your conversations actually go. Anything past the top eight is
+        folded into <em>Other</em> rather than given a colour of its own.</p>
+      <div class="chart wide" id="ins-topics"></div>
+    </div>
+
+    <div class="panel">
+      <h3>When you practise</h3>
+      <p class="pmeta">Hour of the day against day of the week. Darker means more questions.</p>
+      <div class="chart wide" id="ins-when"></div>
+    </div>
+
+    <div class="panel" id="ins-people-panel">
+      <h3>People <span class="lbl" style="font-weight:500" id="ins-people-sum"></span></h3>
+      <p class="pmeta">How each conversation went, stacked by outcome.</p>
+      <div class="chart wide" id="ins-people"></div>
+    </div>
+
+    <div class="panel hidden" id="ins-table-panel">
+      <h3>The numbers <span class="lbl" style="font-weight:500">every figure above, as text</span></h3>
+      <p class="pmeta">The same slice the charts are showing, written out — so nothing on this
+        page depends on being able to see a colour or hover a mark.</p>
+      <div class="ins-tablewrap" id="ins-table"></div>
     </div>
   </section>
 
+  <!-- ============ SETTINGS ============ -->
+  <section id="v-settings" class="hidden">
+    <div class="dash-h">
+      <h2>Settings</h2>
+      <span class="lbl" id="settings-since"></span>
+    </div>
+
+    <!-- Every field here changes how the app behaves. Nothing is decorative. -->
+    <div class="panel" id="profile-panel">
+      <h3>Your profile <span class="lbl" style="font-weight:500" id="prof-meta"></span></h3>
+      <p class="pmeta">Who you are in a conversation, and how far the deck is allowed to go
+        with you. Stored on this device with everything else — there is no account.</p>
+
+      <div class="prof-id">
+        <div class="prof-face" id="prof-face" aria-hidden="true">4</div>
+        <div class="names" style="grid-template-columns:1fr;flex:1;min-width:0">
+          <label>What you go by
+            <input class="search" id="prof-name" type="text" maxlength="24"
+                   placeholder="Reeyan, or @reeyan" autocomplete="off"></label>
+        </div>
+      </div>
+      <p class="pmeta" style="margin:8px 0 0" id="prof-name-note"></p>
+
+      <h4 class="subhead">A day's practice</h4>
+      <div class="seg" id="prof-daily">
+        <button data-d="0" aria-pressed="true">No target</button>
+        <button data-d="10" aria-pressed="false">10</button>
+        <button data-d="25" aria-pressed="false">25</button>
+        <button data-d="50" aria-pressed="false">50</button>
+      </div>
+      <p class="pmeta" style="margin:8px 0 0" id="prof-daily-note"></p>
+
+      <h4 class="subhead">How far the deck may go</h4>
+      <div class="seg" id="prof-ceiling">
+        <button data-c="2" aria-pressed="false">Light</button>
+        <button data-c="3" aria-pressed="false">Personal</button>
+        <button data-c="4" aria-pressed="false">Sensitive</button>
+        <button data-c="5" aria-pressed="true">No limit</button>
+      </div>
+      <p class="pmeta" style="margin:8px 0 0" id="prof-ceiling-note"></p>
+    </div>
+
+    <div class="settings-body" id="settings-body"></div>
+  </section>
+
   <!-- ============ BROWSE ============ -->
-  <section id="v-browse" class="hidden" style="flex-direction:column;gap:12px">
+  <section id="v-browse" class="hidden">
     <input class="search" id="q" type="search" placeholder="Search English, 中文, or pinyin…" autocomplete="off">
     <div class="filters" id="f-sens"><span class="lbl">Sensitivity</span></div>
     <div class="filters" id="f-stage"><span class="lbl">Stage</span></div>
@@ -516,7 +725,7 @@ addEventListener("unhandledrejection", function(e){
   </section>
 
   <!-- ============ WORDS ============ -->
-  <section id="v-words" class="hidden" style="flex-direction:column;gap:12px">
+  <section id="v-words" class="hidden">
     <div class="panel">
       <h3>Your vocabulary <span class="lbl" style="font-weight:500" id="voc-sum"></span></h3>
       <p class="pmeta">Every word here occurs in the deck. A word counts as met once you have
@@ -538,7 +747,7 @@ addEventListener("unhandledrejection", function(e){
   </section>
 
   <!-- ============ SAVED ============ -->
-  <section id="v-saved" class="hidden" style="flex-direction:column;gap:12px">
+  <section id="v-saved" class="hidden">
     <div class="act-row" id="saved-acts">
       <button class="btn sm" id="b-practice-saved">Practice saved</button>
       <button class="ghost" id="b-exp-saved">Export as text</button>
@@ -677,7 +886,7 @@ addEventListener("unhandledrejection", function(e){
         <div class="keyrow"><span><kbd>T</kbd></span><span>Swap who answers first</span></div>
         <div class="keyrow"><span><kbd>B</kbd></span><span>Back to the previous card</span></div>
         <div class="keysec">Anywhere</div>
-        <div class="keyrow"><span><kbd>1</kbd>–<kbd>5</kbd></span><span>Decks · Dashboard · Browse · Words · Saved</span></div>
+        <div class="keyrow"><span><kbd>1</kbd>–<kbd>7</kbd></span><span>Decks · Dashboard · Insights · Browse · Words · Saved · Settings</span></div>
         <div class="keyrow"><span><kbd>/</kbd></span><span>Search the corpus</span></div>
         <div class="keyrow"><span><kbd>?</kbd></span><span>This list</span></div>
         <div class="keyrow"><span><kbd>esc</kbd></span><span>Back to Decks</span></div>
@@ -723,6 +932,9 @@ addEventListener("unhandledrejection", function(e){
 <script src="./track.js"></script>
 <script src="./core.js"></script>
 <script src="./dashboard.js"></script>
+<script src="./insights.js"></script>
+<script src="./folder.js"></script>
+<script src="./drive.js"></script>
 <script src="./boot.js"></script>
 <script src="./native.js"></script>
 </body>

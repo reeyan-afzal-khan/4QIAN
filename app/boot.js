@@ -333,6 +333,552 @@ $("#sendbar").addEventListener("click", e => {
 seg("#copyas", "c", v => { S.copyAs = v; renderCopyPreview(); });
 seg("#learning", "l", v => applyLearning(v));
 
+/* ---------------- Settings: the profile ----------------
+ *
+ * Four fields, and every one of them changes what the app does. A profile that
+ * only remembers a name is a form pretending to be a feature.
+ *
+ *   name     the turn bar says "Reeyan", not "You"
+ *   daily    a per-day target, shown against today on the Dashboard
+ *   ceiling  the hardest cap in the app: the deck may never offer above it,
+ *            and the consent prompt cannot raise past it
+ *
+ * Which language you are practising already existed and keeps its own panel;
+ * it moves here rather than being duplicated.
+ */
+
+/* core.js already names the five levels; a second table here would be one
+   more thing to keep in step for no gain. Only the top of the scale needs a
+   different word, because "Very sensitive" as a ceiling means no ceiling. */
+const ceilingLabel = c => (c >= 5 ? "No limit" : SENS_NAME[c - 1] || String(c));
+
+function profile(){
+  S.profile = S.profile || {};
+  const p = S.profile;
+  if(p.name == null)    p.name = "";
+  if(p.daily == null)   p.daily = 0;
+  /* 5 is "no limit", which is what the app did before this existed — an
+     upgrade must not quietly start withholding questions. */
+  if(p.ceiling == null) p.ceiling = 5;
+  return p;
+}
+
+/* The one-glyph face. Not decoration: at a glance it is the difference between
+   "this is my record" and "this is somebody's record", which matters on a
+   shared laptop. */
+function profileInitial(){
+  const n = (profile().name || "").trim();
+  if(!n) return "4";
+  const ch = n.replace(/^@+/, "").trim().charAt(0);
+  return (ch || "4").toUpperCase();
+}
+
+function renderProfile(){
+  const p = profile();
+  $("#prof-face").textContent = profileInitial();
+  if($("#prof-name").value !== p.name) $("#prof-name").value = p.name;
+
+  $("#prof-name-note").textContent = p.name
+    ? `Turn prompts will say “${p.name}” instead of “You”.`
+    : "Left blank, the app just says “You”.";
+
+  for(const b of $("#prof-daily").children)
+    b.setAttribute("aria-pressed", String(+b.dataset.d === (p.daily | 0)));
+  const doneToday = TRACK.days()[TRACK.dayKey(Date.now())] | 0;
+  $("#prof-daily-note").textContent = p.daily
+    ? `${nf(doneToday)} of ${nf(p.daily)} today.` +
+      (doneToday >= p.daily ? " Done — anything more is extra." : "")
+    : "Without a target the Dashboard just counts what you did.";
+
+  for(const b of $("#prof-ceiling").children)
+    b.setAttribute("aria-pressed", String(+b.dataset.c === (p.ceiling | 5)));
+  $("#prof-ceiling-note").textContent = p.ceiling >= 5
+    ? "Every level is available, with the usual confirmation before 4 and 5."
+    : `Nothing above ${ceilingLabel(p.ceiling)} is ever offered, on any deck, ` +
+      "and the confirmation cannot raise past it.";
+
+  const bits = [];
+  if(p.name) bits.push(p.name);
+  if(p.daily) bits.push(p.daily + " a day");
+  if(p.ceiling < 5) bits.push("max " + ceilingLabel(p.ceiling).toLowerCase());
+  $("#prof-meta").textContent = bits.join(" · ");
+
+  renderRail();
+
+  const f = TRACK.first();
+  $("#settings-since").textContent = f
+    ? "practising since " + new Date(f * 1000).toLocaleDateString(undefined,
+        {month: "short", year: "numeric"})
+    : "";
+}
+
+$("#prof-name").addEventListener("input", e => {
+  profile().name = e.target.value.slice(0, 24);
+  save();
+  renderProfile();
+  renderTurn();          // the turn bar carries the name, so repaint it now
+});
+
+$("#prof-daily").addEventListener("click", e => {
+  const b = e.target.closest("button[data-d]"); if(!b) return;
+  profile().daily = +b.dataset.d;
+  save(); renderProfile();
+  if(S.view === "dash") renderDash();
+});
+
+$("#prof-ceiling").addEventListener("click", e => {
+  const b = e.target.closest("button[data-c]"); if(!b) return;
+  const c = +b.dataset.c;
+  profile().ceiling = c;
+  /* Lowering the ceiling has to bite immediately, including on a run that is
+     already open above it — otherwise the setting is a promise the current
+     session does not keep. */
+  if(S.sensOK > c) S.sensOK = c;
+  if(S.depth > c) S.depth = c;
+  save(); renderProfile();
+  if(typeof renderGauge === "function") renderGauge();
+  if(S.view === "session" && typeof renderCard === "function") renderCard();
+});
+
+/* Settings owns the app's configuration, so the panels that were scattered
+   through Decks and the Dashboard are moved here at boot rather than copied.
+   Moving the real elements keeps every handler already bound to them; a second
+   copy would need every one of those wired again and kept in step. */
+function buildSettings(){
+  const host = $("#settings-body");
+  if(!host) return;
+  const inside = [
+    "#learning", "#goal", "#skins", "#speakmode", "#sw-vocab",
+    "#textsize", "#mode", "#mutedn", "#b-install", "#about",
+    ".datarow", "#drive-panel"
+  ];
+  for(const sel of inside){
+    const el = document.querySelector(sel);
+    if(!el) continue;
+    const panel = el.closest(".panel");
+    if(panel && panel.parentNode !== host) host.appendChild(panel);
+  }
+}
+
+/* ---------------- collapsible panels ----------------
+ *
+ * Every panel with a heading folds away, and what is folded is remembered.
+ * The Dashboard alone is a dozen panels tall; being able to shut the ones you
+ * are not reading is the difference between scrolling past them every visit
+ * and not.
+ *
+ * Done here rather than in the markup: thirty-five panels would otherwise each
+ * need a wrapper, a button and an id by hand, and every panel added later
+ * would need someone to remember. This walks the DOM once at boot, so a new
+ * panel is collapsible the moment it exists.
+ */
+
+/* A key that survives a rename of the visible label. Panel ids where they
+   exist; otherwise the section plus the heading's own text, because "People"
+   is a heading on both the Dashboard and Insights and one key for the two of
+   them would fold them together. */
+function foldKey(panel, h3){
+  if(panel.id) return panel.id;
+  const section = panel.closest("section");
+  const label = [...h3.childNodes]
+    .filter(n => n.nodeType === 3).map(n => n.textContent).join("")
+    .trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return (section ? section.id + ":" : "") + (label || "panel");
+}
+
+const CHEVRON =
+  '<svg class="pfold" width="14" height="14" viewBox="0 0 24 24" fill="none" ' +
+  'stroke="currentColor" stroke-width="2.5" stroke-linecap="round" ' +
+  'stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+
+function setFolded(panel, folded){
+  const body = panel.querySelector(":scope > .panel-body");
+  const h3 = panel.querySelector(":scope > h3");
+  if(!body || !h3) return;
+  panel.classList.toggle("folded", folded);
+  body.hidden = folded;
+  h3.setAttribute("aria-expanded", String(!folded));
+  S.folded = S.folded || {};
+  if(folded) S.folded[panel.dataset.foldKey] = 1;
+  else delete S.folded[panel.dataset.foldKey];
+  save();
+}
+
+function toggleFold(panel){
+  const folded = !panel.classList.contains("folded");
+  setFolded(panel, folded);
+  /* A chart drawn inside a hidden panel measures zero and comes back the wrong
+     size, so the view is redrawn when a panel opens rather than when it
+     closes. Cheap: both renderers derive everything on the spot anyway. */
+  if(!folded){
+    if(S.view === "dash") renderDash();
+    else if(S.view === "insights") renderInsights();
+  }
+}
+
+function makeCollapsible(){
+  S.folded = S.folded || {};
+  for(const panel of document.querySelectorAll(".panel")){
+    const h3 = panel.querySelector(":scope > h3");
+    if(!h3 || panel.dataset.foldKey) continue;
+
+    const key = foldKey(panel, h3);
+    panel.dataset.foldKey = key;
+
+    /* Everything after the heading becomes the body, so one flag hides the
+       whole panel without touching what is inside it. */
+    const body = document.createElement("div");
+    body.className = "panel-body";
+    while(h3.nextSibling) body.appendChild(h3.nextSibling);
+    panel.appendChild(body);
+
+    h3.setAttribute("role", "button");
+    h3.setAttribute("tabindex", "0");
+    h3.insertAdjacentHTML("beforeend", CHEVRON);
+    h3.addEventListener("click", () => toggleFold(panel));
+    h3.addEventListener("keydown", e => {
+      if(e.key === "Enter" || e.key === " "){ e.preventDefault(); toggleFold(panel); }
+    });
+
+    setFolded(panel, !!S.folded[key]);
+  }
+  wireFoldAll();
+}
+
+/* One control per long view, because folding twelve panels one at a time to
+   get to the bottom of the Dashboard is its own kind of tedium. */
+function wireFoldAll(){
+  for(const id of ["v-dash", "v-insights"]){
+    const head = document.querySelector("#" + id + " .dash-h");
+    if(!head || head.querySelector(".foldall")) continue;
+    const b = document.createElement("button");
+    b.className = "ghost sm foldall";
+    b.addEventListener("click", () => {
+      const panels = [...document.querySelectorAll("#" + id + " .panel[data-fold-key]")];
+      const anyOpen = panels.some(p => !p.classList.contains("folded"));
+      for(const p of panels) setFolded(p, anyOpen);
+      if(!anyOpen){
+        if(S.view === "dash") renderDash();
+        else if(S.view === "insights") renderInsights();
+      }
+      paintFoldAll();
+    });
+    head.appendChild(b);
+  }
+  paintFoldAll();
+}
+
+function paintFoldAll(){
+  for(const id of ["v-dash", "v-insights"]){
+    const b = document.querySelector("#" + id + " .foldall");
+    if(!b) continue;
+    const panels = [...document.querySelectorAll("#" + id + " .panel[data-fold-key]")];
+    const anyOpen = panels.some(p => !p.classList.contains("folded"));
+    b.textContent = anyOpen ? "Collapse all" : "Expand all";
+  }
+}
+
+/* ---------------- the rail card ---------------- */
+/* Everything here is already true somewhere else in the app; the point is not
+   to compute it but to put it where you can see it without navigating. Read
+   straight off TRACK and the two connectors, so it cannot drift out of step
+   with the panels it summarises. */
+function renderRail(){
+  const card = $("#railcard");
+  if(!card) return;
+  const p = profile();
+
+  $("#rc-face").textContent = profileInitial();
+  $("#rc-name").textContent = p.name || "You";
+
+  const bits = [];
+  bits.push(p.ceiling >= 5 ? "Every level" : "Max " + ceilingLabel(p.ceiling).toLowerCase());
+  bits.push(S.mode === "en" ? "learning English" : "learning 中文");
+  $("#rc-sub").textContent = bits.join(" · ");
+
+  /* Today, against the target if there is one. */
+  const done = TRACK.days()[TRACK.dayKey(Date.now())] | 0;
+  $("#rc-today").textContent = p.daily ? done + " / " + p.daily : nf(done);
+  const bar = $("#rc-bar");
+  bar.hidden = !p.daily;
+  if(p.daily) $("#rc-fill").style.width =
+    Math.min(100, Math.round(done / p.daily * 100)) + "%";
+
+  $("#rc-streak").textContent = nf(TRACK.streak().cur);
+  $("#rc-cover").textContent  = pct(TRACK.uniques(), CORPUS.n) + "%";
+
+  /* Where a CSV actually lands. Three states, because "picked a folder" and
+     "the browser still has permission for it" are not the same thing. */
+  const fdot = $("#rc-fdot"), fs = $("#rc-folder-s");
+  const fReady = window.FOLDER && FOLDER.ready();
+  const fPerm  = card.dataset.perm;           // last permission renderFolder saw
+  fdot.className = "rc-dot" + (fReady && fPerm !== "prompt" ? " on"
+                             : fReady ? " warn" : "");
+  fs.textContent = !fReady ? "Downloads"
+    : fPerm === "prompt" ? "Needs reconnecting"
+    : FOLDER.name();
+
+  const ddot = $("#rc-ddot"), ds = $("#rc-drive-s");
+  const c = window.DRIVE ? DRIVE.get() : {};
+  const dOn = window.DRIVE && DRIVE.configured();
+  ddot.className = "rc-dot" + (dOn ? (c.last ? " on" : " warn") : "");
+  ds.textContent = !dOn ? "Not connected"
+    : c.last ? "Synced " + new Date(c.last).toLocaleDateString(undefined,
+        {day: "numeric", month: "short"})
+    : "Never synced";
+}
+
+/* A tap goes to the panel that owns the thing, opening it if it was folded —
+   landing on a collapsed heading would look like the link did nothing. */
+function railJump(sel){
+  show("settings");
+  const el = $(sel);
+  if(!el) return;
+  const panel = el.closest(".panel");
+  if(panel && panel.classList.contains("folded")) setFolded(panel, false);
+  el.scrollIntoView({block: "center", behavior: "smooth"});
+  el.classList.add("flash");
+  setTimeout(() => el.classList.remove("flash"), 1200);
+}
+$("#rc-you").addEventListener("click",    () => railJump("#profile-panel"));
+$("#rc-folder").addEventListener("click", () => railJump("#fold-row"));
+$("#rc-drive").addEventListener("click",  () => railJump("#drive-panel"));
+
+/* ---------------- where exports go ---------------- */
+
+function renderFolder(perm){
+  const row = $("#fold-row");
+  /* Stashed for renderRail, which needs it and is not passed it. */
+  if($("#railcard")) $("#railcard").dataset.perm = perm || "";
+  if(!FOLDER.supported()){
+    /* Nothing to offer: no picker here. Say where files go rather than
+       showing a button that cannot work. */
+    $("#fold-name").textContent = window.Capacitor
+      ? "Exports go to Documents" : "Exports go to your downloads";
+    $("#fold-note").textContent = window.Capacitor ? ""
+      : "Choosing a folder needs Chrome or Edge.";
+    $("#b-fold-pick").classList.add("hidden");
+    $("#b-fold-forget").classList.add("hidden");
+    $("#b-fold-reconnect").classList.add("hidden");
+    renderRail();
+    return;
+  }
+
+  const on = FOLDER.ready() && perm !== "prompt";
+  $("#fold-name").textContent = on
+    ? "Exports go to " + FOLDER.name()
+    : perm === "prompt"
+      ? "Folder needs reconnecting: " + FOLDER.name()
+      : "Exports go to your downloads";
+  $("#fold-note").textContent = on
+    ? "If that folder is inside your Google Drive, Drive syncs it for you — nothing else to do."
+    : perm === "prompt"
+      ? "The browser forgets folder permission when it restarts. One click restores it."
+      : "Pick a folder and the CSV is written straight there instead of downloaded.";
+
+  $("#b-fold-reconnect").classList.toggle("hidden", perm !== "prompt");
+  $("#b-fold-pick").classList.toggle("hidden", on);
+  $("#b-fold-forget").classList.toggle("hidden", !FOLDER.ready());
+  renderRail();
+}
+
+$("#b-fold-pick").addEventListener("click", async () => {
+  try{
+    const nm = await FOLDER.pick();
+    toast("Exports will be written to " + nm);
+    renderFolder("granted"); renderDrive();
+  }catch(err){
+    /* An abandoned file dialog throws; that is a choice, not a fault. */
+    if(err && err.name === "AbortError") return;
+    toast(err.message || "Could not use that folder");
+  }
+});
+
+$("#b-fold-reconnect").addEventListener("click", async () => {
+  try{
+    const ok = await FOLDER.reconnect();
+    toast(ok ? "Folder reconnected" : "Permission was not granted");
+    renderFolder(ok ? "granted" : "prompt"); renderDrive();
+  }catch(err){ toast(err.message || "Could not reconnect"); }
+});
+
+$("#b-fold-forget").addEventListener("click", async () => {
+  await FOLDER.forget();
+  toast("Exports go to your downloads again");
+  renderFolder(""); renderDrive();
+});
+
+/* ---------------- Google Drive folder ---------------- */
+
+function renderDrive(){
+  const c = DRIVE.get();
+  const on = DRIVE.configured();
+  $("#dr-state").textContent = !on ? "off"
+    : c.last ? "synced " + new Date(c.last).toLocaleString(undefined,
+        {day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"})
+    : c.folder ? "connected to " + c.folder
+    : "set up, not synced yet";
+  /* A wrong URL is the single most common way this fails, and the browser's
+     own error for it says nothing. Say it here, as soon as it is typed. */
+  const bad = c.url ? DRIVE.urlProblem(c.url) : "";
+  const viaFolder = window.FOLDER && FOLDER.ready();
+  $("#dr-mine").textContent = bad ? bad
+    : on ? (viaFolder
+        ? `Sync writes into ${FOLDER.name()}, mirrors it with the Drive folder both ways, ` +
+          `and merges in anything new.`
+        : `Each sync writes a new ${DRIVE.snapshotName()} and merges in every file it ` +
+          `has not taken yet.`)
+    : "";
+  $("#dr-mine").classList.toggle("bad", !!bad);
+  for(const id of ["dr-sync", "dr-upload", "dr-test", "dr-refresh"])
+    $("#" + id).disabled = !on;
+  renderRail();
+}
+
+function driveBusy(btn, on, label){
+  btn.disabled = on;
+  if(on){ btn.dataset.was = btn.textContent; btn.textContent = label; }
+  else if(btn.dataset.was){ btn.textContent = btn.dataset.was; delete btn.dataset.was; }
+}
+
+const driveSay = (msg, bad) => {
+  const n = $("#dr-note");
+  n.textContent = msg || "";
+  n.classList.toggle("bad", !!bad);
+};
+
+function renderDriveFiles(files){
+  const host = $("#dr-files");
+  host.textContent = "";
+  if(!files) return;
+  if(!files.length){
+    const p = document.createElement("p");
+    p.className = "pmeta"; p.style.margin = "12px 0 0";
+    p.textContent = "The folder has no CSVs in it yet.";
+    host.appendChild(p);
+    return;
+  }
+  const taken = DRIVE.imported();
+  for(const f of files){
+    const row = document.createElement("div");
+    row.className = "drive-file";
+
+    const nm = document.createElement("span");
+    nm.className = "dfn";
+    nm.textContent = f.name;                 // a filename is data: text, never markup
+    /* Files already folded in are marked, so the folder reads as "what is new"
+       rather than as an undifferentiated pile. */
+    if(taken.has(f.id)){
+      const tag = document.createElement("b");
+      tag.textContent = "  merged";
+      tag.style.color = "var(--muted)"; tag.style.fontWeight = "600";
+      nm.appendChild(tag);
+    }
+
+    const meta = document.createElement("span");
+    meta.className = "dfm";
+    const kb = f.size ? Math.max(1, Math.round(f.size / 1024)) + " KB" : "";
+    const when = f.modified ? new Date(f.modified).toLocaleDateString(undefined,
+      {day: "numeric", month: "short"}) : "";
+    meta.textContent = [kb, when].filter(Boolean).join(" · ");
+
+    const acts = document.createElement("div");
+    acts.className = "dfa";
+
+    const imp = document.createElement("button");
+    imp.textContent = "Import";
+    imp.addEventListener("click", async () => {
+      driveBusy(imp, true, "…");
+      try{
+        const got = TRACK.importCSV(await DRIVE.read(f.id), deckIndex);
+        toast(`Merged · ${nf(got.events)} entries, ${nf(got.sessions)} sessions`);
+        renderDash();
+        driveSay("");
+      }catch(err){ driveSay(err.message, true); }
+      driveBusy(imp, false);
+    });
+
+    const del = document.createElement("button");
+    del.className = "dfx"; del.textContent = "Delete";
+    del.addEventListener("click", async () => {
+      driveBusy(del, true, "…");
+      try{
+        await DRIVE.remove(f.id);
+        driveSay("Deleted " + f.name + ".");
+        renderDriveFiles(await DRIVE.list());
+      }catch(err){ driveSay(err.message, true); }
+      driveBusy(del, false);
+    });
+
+    acts.append(imp, del);
+    row.append(nm, meta, acts);
+    host.appendChild(row);
+  }
+}
+
+for(const [sel, key] of [["#dr-url", "url"], ["#dr-token", "token"], ["#dr-device", "device"]])
+  $(sel).addEventListener("input", e => {
+    DRIVE.set({[key]: e.target.value.trim()});
+    renderDrive();
+  });
+
+$("#dr-test").addEventListener("click", async () => {
+  const b = $("#dr-test");
+  driveBusy(b, true, "Testing…");
+  try{
+    const out = await DRIVE.test();
+    driveSay(`Connected to “${out.folder}”.`);
+    renderDriveFiles(await DRIVE.list());
+  }catch(err){ driveSay(err.message, true); }
+  driveBusy(b, false);
+  renderDrive();
+});
+
+$("#dr-upload").addEventListener("click", async () => {
+  const b = $("#dr-upload");
+  if(!TRACK.events().length) return driveSay("Nothing to upload yet.", true);
+  driveBusy(b, true, "Uploading…");
+  try{
+    const f = await DRIVE.upload(TRACK.toCSV(csvLookup, deckName));
+    driveSay(`Uploaded ${f.name}.`);
+    renderDriveFiles(await DRIVE.list());
+  }catch(err){ driveSay(err.message, true); }
+  driveBusy(b, false);
+  renderDrive();
+});
+
+$("#dr-sync").addEventListener("click", async () => {
+  const b = $("#dr-sync");
+  driveBusy(b, true, "Syncing…");
+  try{
+    const out = await DRIVE.sync(
+      TRACK.toCSV(csvLookup, deckName),
+      text => TRACK.importCSV(text, deckIndex),
+      window.FOLDER);
+    const bits = [`Wrote ${out.mine}`];
+    if(out.up || out.down)
+      bits.push(`mirrored ${nf(out.up)} up, ${nf(out.down)} down`);
+    bits.push(out.merged
+      ? `merged ${nf(out.merged)} new ${out.merged === 1 ? "file" : "files"}`
+      : "nothing new to merge");
+    if(out.skipped) bits.push(`${nf(out.skipped)} unreadable and skipped`);
+    driveSay(bits.join(" · ") + ".");
+    renderDash();
+    renderDriveFiles(await DRIVE.list());
+  }catch(err){ driveSay(err.message, true); }
+  driveBusy(b, false);
+  renderDrive();
+});
+
+$("#dr-refresh").addEventListener("click", async () => {
+  const b = $("#dr-refresh");
+  driveBusy(b, true, "…");
+  try{ renderDriveFiles(await DRIVE.list()); driveSay(""); }
+  catch(err){ driveSay(err.message, true); }
+  driveBusy(b, false);
+  renderDrive();
+});
+
 /* ---------------- the tour ---------------- */
 $("#tour-next").addEventListener("click", () => TOUR.next());
 $("#tour-back").addEventListener("click", () => TOUR.back());
@@ -416,7 +962,8 @@ document.addEventListener("keydown", e => {
   /* --- anywhere --- */
   if(e.key === "?" || (e.key === "/" && e.shiftKey)){ e.preventDefault(); $("#help").showModal(); return; }
   if(e.key === "/"){ e.preventDefault(); show("browse"); $("#q").focus(); return; }
-  const jump = {"1":"setup","2":"dash","3":"browse","4":"words","5":"saved"}[e.key];
+  const jump = {"1":"setup","2":"dash","3":"insights","4":"browse",
+                "5":"words","6":"saved","7":"settings"}[e.key];
   if(jump){ show(jump); return; }
 
   /* --- in a session --- */
@@ -522,7 +1069,18 @@ try{
   renderQOTD(); renderAbout();
   setPartner(S.partner); renderPeople(); renderPartner();
   applyLearning(S.learning); renderCopyPreview();
-  wireDashboard();
+  wireDashboard(); wireInsights();
+  buildSettings(); makeCollapsible(); renderProfile();
+  /* The folder handle lives in IndexedDB, so restoring it is async and the
+     panel paints twice: once with what is known, once when the answer lands. */
+  renderFolder("");
+  FOLDER.restore().then(p => { renderFolder(p); renderDrive(); })
+              .catch(() => renderFolder(""));
+  $("#dr-url").value    = DRIVE.get().url || "";
+  $("#dr-token").value  = DRIVE.get().token || "";
+  $("#dr-device").value = DRIVE.get().device || DRIVE.defaultDevice();
+  renderDrive();
+  $("#b-go-insights").addEventListener("click", () => show("insights"));
   show("setup");
   /* First run: offer the tour rather than launching into it, because an
      overlay you did not ask for is the thing people close without reading. */

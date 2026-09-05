@@ -34,8 +34,10 @@ const SKINS = [
    rp:["#928374","#83A598","#8EC07C","#FABD2F","#FE8019"]},
   {id:"ember",    nm:"Ember",     dark:true,  bg:"#000000", ac:"#FF6B18",
    rp:["#7A6A62","#A85A20","#E2731A","#FF6B18","#FFB03A"]},
-  {id:"blurple",  nm:"Blurple",   dark:true,  bg:"#1E1F22", ac:"#5865F2",
-   rp:["#80848E","#3BA55D","#5865F2","#EB459E","#F0B232"]},
+  {id:"discord",  nm:"Discord",   dark:true,  bg:"#1E1F22", ac:"#5865F2",
+   rp:["#949BA4","#23A559","#5865F2","#EB459F","#F0B232"]},
+  {id:"blurple",  nm:"Blurple",   dark:true,  bg:"#161622", ac:"#7A6BFF",
+   rp:["#8B8BA7","#43C59E","#7A6BFF","#E86AC4","#F5B944"]},
   {id:"terminal", nm:"Terminal",  dark:true,  bg:"#050805", ac:"#4AE84A",
    rp:["#6E8A6A","#4A8A4A","#35C335","#4AE84A","#B6FF7A"]},
   {id:"blueprint",nm:"Blueprint", dark:true,  bg:"#0A1220", ac:"#4FC3F7",
@@ -147,7 +149,9 @@ function pool(depth, exact){
   for(const i of d.ids){
     const q = DATA.q[i];
     if(exact ? q[ST]!==depth : q[ST]>depth) continue;
-    if(q[SE] > Math.min(depth, S.sensOK)) continue;
+    /* The profile ceiling is the hardest cap in the app: below the run depth
+       and below whatever the consent prompt agreed to. */
+    if(q[SE] > Math.min(depth, S.sensOK, ((S.profile || {}).ceiling) || 5)) continue;
     // A muted topic is a standing preference about the shipped decks. It does
     // not override a selection you just made by hand.
     if(S.deck >= 0 && muted.has(q[CA])) continue;
@@ -217,13 +221,18 @@ function show(v){
     SPEAK.stop(); stopRunClock();
   }
   S.view = v;
-  for(const n of ["setup","session","dash","browse","words","saved"])
+  for(const n of ["setup","session","dash","insights","settings","browse","words","saved"])
     $("#v-"+n).classList.toggle("hidden", n!==v);
   $("#v-"+v).style.display = "flex";
   [...$("#nav").children].forEach(b => b.setAttribute("aria-pressed", b.dataset.v===v));
+  /* The rail card counts today's questions, so it is stale the moment a run
+     ends. A view change is the cheapest honest moment to repaint it. */
+  if(window.renderRail) renderRail();
   if(v==="browse") runSearch();
   if(v==="saved")  renderSaved();
   if(v==="dash")   renderDash();
+  if(v==="insights") renderInsights();
+  if(v==="settings") renderProfile();
   if(v==="words")  renderVocab();
   if(v==="setup"){ renderQOTD(); renderPeople(); }  // both cheap, both go stale
   scrollTo(0,0);
@@ -252,6 +261,11 @@ function paintSkin(id){
   // Hazard is the bare :root palette, so it carries no attribute.
   if(sk.id==="hazard") document.documentElement.removeAttribute("data-skin");
   else document.documentElement.dataset.skin = sk.id;
+  /* The categorical chart palette has a light and a dark stepping, and which
+     one applies depends on the skin's ground rather than on the OS. Stamped
+     here so the charts are one CSS lookup away from the right set instead of
+     each one asking. */
+  document.documentElement.dataset.mode = sk.dark ? "dark" : "light";
   $("#skinname").textContent = sk.nm + (S.autoTheme ? " · auto" : "");
   [...$("#skins").querySelectorAll(".skin")]
     .forEach(b => b.setAttribute("aria-pressed", b.dataset.k === sk.id));
@@ -328,7 +342,10 @@ function renderTopics(){
    whoever you are talking to right now, which changes conversation to
    conversation, so it reads off the partner box rather than off a second name
    field nobody would keep up to date. */
-const playerName = i => i ? ((S.partner || "").trim() || "Them") : "You";
+/* Your own name if the profile carries one — a turn bar that says "Reeyan"
+   reads as a conversation, and "You" reads as a form. */
+const playerName = i => i ? ((S.partner || "").trim() || "Them")
+                          : (((S.profile || {}).name || "").trim() || "You");
 
 function renderTurn(){
   $("#turnbar").classList.toggle("hidden", !S.turns);
@@ -481,6 +498,8 @@ function move(dir){
   const want = Math.min(hi, Math.max(lo, S.depth+dir));
   const how = dir > 0 ? 1 : 2;
   if(want===S.depth && dir>0){ next(how); return; }
+  const cap = ((S.profile || {}).ceiling) || 5;
+  if(want > cap){ toast("Your profile keeps the deck at " + (SENS_NAME[cap - 1] || cap) + "."); return; }
   if(dir>0 && want>=4 && S.sensOK<want){
     askConsent(want, ()=>{ S.sensOK=want; S.depth=want; next(how); }, renderGauge);
     return;

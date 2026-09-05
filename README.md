@@ -37,14 +37,17 @@ icons and splash.
 
 ```
 app/                the whole application — this is the only thing you edit
-  index.html        markup for all six views, six dialogs and the tour overlay
-  styles.css        one committed dark design plus ten alternate skins
+  index.html        markup for all eight views, six dialogs and the tour overlay
+  styles.css        one committed dark design plus eleven alternate skins
   questions.js      the deck: 4,228 rows + decks, categories, frames (1 MB, generated)
   vocab.js          the word bank: 1,081 hand-glossed words, also the segmenter's dictionary
   answers.js        AREC answers: 55 exact + 50 topic-level, covering all 4,228
   track.js          the record: events, counts, per-day totals, and who each was with
   core.js           setup, themes, speech, the session loop, vocabulary, the tour, browse, saved
-  dashboard.js      aggregation, charts, the record log, export/import
+  dashboard.js      aggregation, charts, the record log, CSV export and import
+  insights.js       the filterable chart view: trend, donut, bars, heat grid, table
+  folder.js         writes exports into a folder you pick; inside a Drive mount that IS the sync
+  drive.js          optional: posts a CSV to a Drive folder through a small Apps Script
   boot.js           event wiring, keyboard map and start-up
   native.js         Android back button and status bar; a no-op in a browser
   sw.js             service worker
@@ -65,6 +68,10 @@ scripts/
                     validate the word bank against the corpus
   make-icons.mjs    draws the 4千 mark and writes the three app icons
   android-brand.mjs (icons/splash/theme), android-build.mjs
+cloud/
+  Code.gs           the Apps Script web app: read and write CSVs in one Drive folder
+  appsscript.json   the Drive scope, declared rather than inferred
+  mock-server.mjs   that same doPost on :5199, so sync works without deploying
 android/            Capacitor project (generated, then branded)
 tools/              JDK 21 + Android SDK used by the APK build (not in git)
 ```
@@ -227,10 +234,10 @@ stop replying.
 
 ### Two themes that match the window next to them
 
-**Blurple** takes Discord's dark greys and its indigo; **Sky** takes the white-and-blue of a
-language-exchange app. Neither copies a product's palette — they are the same
-neighbourhood, so the sidecar reads as a companion to the window beside it rather than as a
-different application. Nine other palettes are unchanged.
+**Discord** takes Discord's own three greys and its blurple; **Sky** takes the white-and-blue
+of a language-exchange app. The sidecar should read as a companion to the window beside it
+rather than as a different application, and for the window people actually keep it beside,
+the closer the match the better. Ten other palettes are unchanged.
 
 ---
 
@@ -384,11 +391,11 @@ of detail are what you copy, not the content.
 
 ## Themes
 
-Eleven palettes, grouped in the picker by ground:
+Twelve palettes, grouped in the picker by ground:
 
 | Dark | Light |
 | --- | --- |
-| **Hazard** (default) · **Gruvbox** · **Ember** · **Blurple** · Terminal · Blueprint | **Gruvbox Light** · **Sky** · Cinnabar · Sounding · Daylight |
+| **Hazard** (default) · **Gruvbox** · **Ember** · **Discord** · **Blurple** · Terminal · Blueprint | **Gruvbox Light** · **Sky** · Cinnabar · Sounding · Daylight |
 
 Both Gruvbox skins are the published ramps rather than an approximation — `bg0_h`
 through `fg0` with the bright accents for the dark one, the cream grounds with the
@@ -399,6 +406,24 @@ contrast to read at 12px.
 else competing for it. Its heat ramp is the most literal in the set — ash, through
 rust and flame, to a pale yellow at the top — which is as close as the depth gauge
 gets to meaning what it looks like.
+
+**Discord** is the one theme that copies a product on purpose, because it is the window
+most of this app's use happens beside. Getting it to read as Discord is not about the
+blurple — it is about the order of the three greys. Discord puts its *darkest* tone on the
+outside, a mid tone on the sidebar, and its *lightest* on the content you are reading:
+`#1E1F22` page, `#2B2D31` rail, `#313338` panels. Most dark themes do the opposite, and a
+theme that gets that stack backwards reads as "a dark theme that happens to be blue" no
+matter how exact the accent is. It also drops the corner radius from 13px to 8px, which is
+Discord's, and takes its status hues — `#23A559` green, `#EB459F` fuchsia, `#F0B232` yellow.
+
+The sidebar needed a token of its own to do that. `--rail` is what the tabs and the rail
+card paint with, and in **every other theme it is simply equal to `--surface`** — the split
+exists for the one palette that needs it and costs the other eleven nothing.
+
+**Blurple** used to be Discord's greys under a different name, which made the two
+indistinguishable once the real thing existed. It has moved to an indigo-violet ground of
+its own (`#161622`) with a brighter `#7A6BFF` accent, so the picker no longer offers the
+same theme twice.
 
 A theme is only a block of custom properties. `--h1`…`--h5` is the heat ramp the
 depth gauge, the card spines and the histograms run on, so a new palette needs five
@@ -446,6 +471,432 @@ full.
 
 ---
 
+## Where the CSV goes
+
+**Dashboard → Your data** has one line under the buttons saying where exports land.
+Press **Choose a folder**, pick one, and every export is written straight into it — no
+download, no browser save dialog. The choice is remembered.
+
+### The project folder, mirrored to Drive
+
+`4QIAN-DATABASE/` at the project root is the intended target. It is gitignored — exported
+records are your data, not source.
+
+That folder sits inside **OneDrive**, though, not Google Drive, so Windows syncs it to
+OneDrive and nothing carries it across to Google. **Sync with the folder** is the bridge.
+One press does three things:
+
+1. writes this device's snapshot into the folder,
+2. **mirrors the folder against the Drive folder in both directions** — anything here that
+   is not there is uploaded, anything there that is not here is written down,
+3. merges in every file it has not already taken.
+
+So a CSV you drop into `4QIAN-DATABASE/` by hand is uploaded to Drive and folded into your
+record on the next sync, and a file your phone posted straight to Drive appears in the local
+folder. Both sides end up holding the same set of files.
+
+Mirroring is by **filename**, and every name carries a timestamp to the second, so "the same
+name" genuinely means "the same file" and neither side has to guess. Merging is idempotent,
+so pressing sync twice moves nothing.
+
+The one thing it cannot do is run while the app is closed. A web page cannot watch a folder;
+the mirror happens when you press the button.
+
+### If you would rather it were automatic
+
+Point the folder picker at a Drive-mounted folder instead — on this machine that is
+
+```
+G:\My Drive\Language Practice\4QIAN-DATABASE
+```
+
+Google Drive for Desktop is already syncing that path in the background, with this app
+closed, so writing a file there *is* the sync and steps 2 and 3 above stop being needed.
+The trade is that the CSVs then live in Drive rather than beside the project.
+
+A page cannot watch a folder, and re-implementing a sync client that is already
+installed and running would only be a worse copy of it — so the app does not try.
+
+The folder picker is the **File System Access API**: a page cannot reach into your disk on
+its own, so you choose the folder once in a real file dialog and the browser hands back a
+handle scoped to exactly that folder. It works in Chrome and Edge over https or localhost.
+Firefox and Safari have not shipped it and fall back to the ordinary download; Android has
+its own Documents path and does the same.
+
+Browsers drop folder permission when they restart, and a page is not allowed to ask for it
+back on its own. The panel notices and offers **Reconnect folder**, which is one click.
+
+---
+
+## Keeping the CSV in a Google Drive folder — from a phone
+
+This is the path for **Android**, where there is no Drive-for-Desktop mount to write into.
+On a laptop the folder above is simpler and needs no deployment at all — but both write into
+the same Drive folder, so the two mechanisms compose: the phone posts through the script,
+the laptop writes to the mounted folder, and each picks up the other'''s files.
+
+Every sync writes a **new** file, stamped to the second:
+
+```
+4qian-record-2026-09-05-16-27-31.csv
+```
+
+Nothing is ever overwritten, so the folder is a history rather than a pair of latest-only
+files, and two devices cannot collide unless they upload inside the same second.
+
+**Sync with the folder** uploads a snapshot, then merges in every file this device has not
+already taken — its own older snapshots included. That last part is what restores a device
+that has been wiped or reinstalled: point a bare install at the folder, press sync, and the
+whole record comes back.
+
+Import merges rather than replaces and is idempotent, so syncing twice changes nothing and
+two devices converge on the second round. Files are the transport; the merge already in
+`track.js` is the meaning — nothing new had to learn how to combine two records.
+
+Which files have been folded in is remembered by **file id**, so a folder holding a year of
+snapshots is not re-downloaded on every sync. Files already merged are marked in the list.
+Erasing your record clears that memory too, or the next sync would decline to bring back
+the very files that would restore it.
+
+One consequence worth knowing: **the folder grows by one file per sync.** They are small,
+and each is a complete record, so old ones can be deleted freely — every file in the list
+has a Delete button, and deleting a merged snapshot loses nothing that a newer one does not
+already contain.
+
+**Dashboard → Google Drive folder**: a URL, a shared secret, and a name for this device.
+Optional throughout — with the URL blank, nothing leaves the device and Export CSV behaves
+exactly as before.
+
+### Why a script and not OAuth
+
+This went the OAuth way first and the OAuth way is wrong for this app.
+
+- **Google refuses OAuth inside an app webview** — `disallowed_useragent`. An OAuth build
+  syncs on the laptop and not on the phone, and a sync that skips one of your two devices
+  is not a sync. Getting around it needs a native sign-in plugin, which is a dependency
+  this project does not have.
+- **Without a security assessment you get the `drive.file` scope**, under which an app may
+  only see files it created. An existing folder could be written to but never listed.
+- It also needs a Cloud project, a client ID per origin and a consent screen.
+
+An Apps Script web app collapses all of that into one HTTPS POST that behaves identically
+in a browser, in the installed PWA and inside the Android WebView. The script runs as *you*,
+so it simply has access to the folder — including the files you put there by hand — and the
+app never holds a Google credential at all, only a URL and a secret you chose.
+
+### Setup
+
+**1.** Go to [script.google.com](https://script.google.com) → **New project**.
+
+**2.** Delete what is there and paste all of `cloud/Code.gs`.
+
+**3.** Set two lines at the top:
+
+```js
+var FOLDER_ID = '1Q-xyoz-O875_ltRhYxQMaF83AIy-lUtU';   // already your folder
+var TOKEN     = 'change-me';                            // pick something long
+```
+
+**4.** *Optional but tidy:* **⚙ Project Settings → Show "appsscript.json"**, then paste
+`cloud/appsscript.json` over it. It declares the Drive scope explicitly rather than leaving
+it to inference.
+
+**5.** **Deploy → New deployment → ⚙ → Web app**, with **Execute as: Me** and **Who has
+access: Anyone**. "Anyone" is required — your phone hits this URL without being signed in to
+Google — and access is controlled by the URL being unguessable plus your `TOKEN`. Nothing
+else in your Drive is exposed; the script only ever opens the one folder, and even `get` and
+`del` look their file up *inside* that folder rather than by raw id.
+
+**6.** Authorise it. The unverified warning is expected: you wrote it five minutes ago.
+
+**7.** Copy the `/exec` URL into the app with the same token, and name the device.
+
+Repeat step 7 on each device, using the same URL and token. The device name is only a label
+for you; the timestamp is what keeps files apart.
+
+Visiting the `/exec` URL in a browser returns a small JSON health check naming the folder,
+which is the quickest way to tell whether a deployment took.
+
+**Use the /exec URL, never /dev.** The editor also shows a URL ending in `/dev` — that is
+its own test deployment, and it only answers a browser signed in as the script owner. The
+app is anonymous and cross-origin, so Google hands it a sign-in page instead, the browser
+blocks the response for CORS, and all the page is told is `Failed to fetch` — no status, no
+body, no cause. The app now recognises a `/dev` URL as you paste it and says so rather than
+letting you find out that way.
+
+### If you change the script
+
+**Deploy → Manage deployments → ✏ → Version: New version → Deploy.** Do **not** use *New
+deployment* for an update: it mints a second URL and leaves the app talking to the old one,
+which looks exactly like nothing happening. That is the single most common way this breaks.
+
+### Testing without deploying
+
+```bash
+node cloud/mock-server.mjs      # the real doPost, an in-memory folder, on :5199
+```
+
+It runs the actual `doPost` out of `Code.gs` with only `DriveApp` stubbed, so the client
+round trip — upload, list, read back, merge, delete — is exercised for real. Point the panel
+at `http://localhost:5199` with token `change-me`; plain `http` is accepted by the app only
+for localhost.
+
+---
+
+## Settings, and the profile
+
+An eighth view. Decks keeps the four panels you touch before a conversation — the deck list,
+question of the day, who you are talking to, and what the copy button puts on your clipboard.
+Everything that configures the app moved to **Settings**: theme, text size, what the card
+shows, read-aloud, study aids, muted topics, session goal, which language you are practising,
+install, about, your data, and the Google Drive folder. Thirteen panels, all collapsible.
+
+The panels are **moved at boot, not duplicated**. `buildSettings()` relocates the real
+elements, so every handler already bound to them comes along; a second copy of each control
+would need every one of those wired again and kept in step forever. It runs before
+`makeCollapsible()`, so fold keys are generated against the section the panel ends up in.
+
+### The profile
+
+Four fields, and each one changes what the app does. A profile that only remembers a name is
+a form pretending to be a feature.
+
+| Field | What it changes |
+| --- | --- |
+| **What you go by** | the turn bar says *Reeyan* instead of *You*, and the panel grows a one-glyph face |
+| **A day's practice** | a per-day target, counted against what you actually did today |
+| **How far the deck may go** | the hardest cap in the app |
+| **Which language** | the existing setting, moved here rather than copied |
+
+The ceiling is the one worth explaining. The app already asked for confirmation before
+levels 4 and 5; the profile sits *above* that. `pool()` takes
+`Math.min(depth, sensOK, ceiling)`, so nothing above your ceiling is ever drawn on any deck,
+and trying to go deeper is refused by name — *"Your profile keeps the deck at Personal."* —
+rather than silently doing nothing. Lowering it also bites on a run already open above it,
+or the setting would be a promise the current session does not keep.
+
+Proven on **Deep dive**, a deck that genuinely reaches sensitivity 5: with no limit the draw
+reaches 5; set to *Personal*, sixty consecutive draws on the same deck top out at 3.
+
+The face is not decoration. On a shared laptop it is the difference at a glance between
+"this is my record" and "this is somebody's record".
+
+---
+
+## Two layouts, one set of markup
+
+Below 900px the app is what it always was: a single column with the tabs across the top,
+which is right on a phone and is where most of its use happens.
+
+At 900px and above `.wrap` becomes a two-column grid. The masthead and the tabs move into a
+sticky rail on the left and everything else takes the width back — main content goes from
+560px to 1,107px at a 1440px window, and the tabs stop costing two rows of vertical space on
+every screen, because a column beside the content costs none.
+
+**There is still only one navigation.** It is the same `<nav>`, the same buttons and the
+same handlers at both widths; only the grid area and the flex direction differ. Nothing to
+keep in step with a second copy, and nothing to remember when a view is added. The rail
+later grew a wrapper around that nav so a status card could share its sticky block — one
+element, and the nav inside it is untouched.
+
+The rail is laid out as two real grid rows — `mast` above `nav` — rather than as one area
+with the nav pushed down by a hard-coded offset. The offset version worked and was a
+measurement waiting to go stale the moment the masthead changed height.
+
+### Seven tabs, and why they carry icons
+
+Six destinations read fine as a list of words. Seven does not — past about half a dozen the
+eye stops scanning the column and starts reading it, which is slower every single time. So
+every tab now carries an inline SVG glyph: **book, panel grid, rising line, magnifier, open
+book, bookmark, gear.** The glyph is what the eye lands on and the word is what confirms it,
+so neither has to work alone.
+
+The icons are inline `<svg>` rather than a font or sprite sheet. They inherit `currentColor`,
+which means the pressed tab paints its icon and its label in the same ink automatically and
+all twelve themes get them right without a single extra rule — and it keeps the app's one
+real constraint intact: no build step, no asset to fetch, works from `file://`.
+
+**Settings sits last, behind a gear.** It is the one tab you visit to change the app rather
+than to use it, and the gear is the single most recognised glyph in software. Moving it also
+put the shortcut map back in visual order — <kbd>1</kbd>–<kbd>7</kbd> now walk the tabs
+top to bottom, which they did not while Settings was fourth.
+
+The phone grid went from three columns to four, so seven tabs land as **4 + 3 in two rows**
+rather than 3 + 3 + 1 in three; between 620px and the rail breakpoint they fit one row of
+seven; above 900px they stack in the rail with the icon beside the label. Verified at each
+of the three widths — no label truncates and nothing overflows sideways across 12 themes ×
+8 views.
+
+### Room between the panels
+
+Density was costing legibility. Panels went from `14px` to `17px 18px` of padding, headings
+from 10px to 13px of space beneath them, and the gap between sections from 14px to 18px on a
+wide screen — where there is room to spend and no reason not to.
+
+That last one needed something removed first: each `<section>` carried its column layout in
+an **inline style**, which no media query can reach. The seven inline styles are gone and the
+rule lives in the stylesheet, where the wide breakpoint can widen the gap and the phone
+breakpoint can leave it alone.
+
+Width is spent on more columns rather than wider boxes: three KPI tiles per row instead of
+two, decks two-up, and the Insights charts drawing across 1,107px of main column instead of
+560 — wide enough that none of them need to scroll inside their own box any more.
+
+One thing deliberately does **not** get the width. `#v-session` is capped at 760px, because
+reading and answering want a measure: a question set in a 1,100px line is a worse question.
+The panels, tables and charts take the room; the card does not.
+
+### What the rail carries besides tabs
+
+Seven tabs in a column leave most of the rail empty, and the thing worth putting there is
+the state you would otherwise open Settings to check. Under the tabs, at 900px and up:
+
+| | |
+| --- | --- |
+| **Who** | the one-glyph face, your name, your ceiling and which language you are practising |
+| **Today** | questions today — against your daily target, with a bar, if you set one |
+| **Streak and coverage** | consecutive days, and how much of the 4,228 you have seen |
+| **Export folder** | Downloads, the folder's name, or *needs reconnecting* |
+| **Google Drive** | not connected, never synced, or the date of the last sync |
+
+Nothing here is computed twice. It is read straight off `TRACK`, `FOLDER` and `DRIVE`, so
+the card cannot drift out of step with the panels it summarises, and every renderer that
+changes one of those repaints it. `show()` repaints it too — today's count is stale the
+moment a run ends, and a view change is the cheapest honest moment to catch that.
+
+The two connector rows are **three-state, not two**. A picked folder whose permission the
+browser has since dropped is neither on nor off, and a Drive that is configured but has
+never synced is not the same as one syncing nightly; an amber dot says so without a
+sentence. Clicking any row goes to the panel that owns it and **unfolds it if it was
+collapsed** — landing on a folded heading looks like the click did nothing.
+
+It is rail-only. On a phone this is vertical space the app cannot spare, so it is not
+rendered below 900px at all.
+
+The rail is now one sticky block holding the nav and the card, rather than two grid rows
+each sticking on their own. Two sticky elements in a column need the second to know the
+height of the first, which is a hard-coded offset waiting to go stale — the same mistake
+the masthead row already taught this layout once.
+
+### Width, and where the measure is actually defended
+
+The cap was 1240px, which on a maximised window left a third of the screen empty. It is now
+**1800px**, and the defence moved to the one place that needs it — the question card keeps
+its 760px — rather than sitting on everything. Tables, charts, decks and panels take the
+rest of the room, which is what the room is for.
+
+The tagline above them is a **single block, balanced**. Multi-column was tried first and is
+wrong here: three sentences do not divide evenly, so at 1730px the last two words ended up
+alone at the top of a second column beside a hole. A lead paragraph is read once, in order.
+It gets `text-wrap: balance` instead — the same thing every heading in the app already
+does — so the lines come out even at any width rather than a full line followed by an
+orphan: 729 / 732px at 1440, 492 / 482 / 485px at 1000, one 1,464px line at 2560.
+
+### Panels fold away
+
+Every panel with a heading collapses when you click it, and what you folded is remembered.
+The Dashboard is thirteen panels tall; shutting the ones you are not reading takes it from
+**23,452px to 2,262px — about 90% of the scrolling gone.** Each long view also carries a
+**Collapse all / Expand all** control next to its title.
+
+The wiring is done in JavaScript at boot rather than in the markup. Thirty-five panels would
+otherwise each need a wrapper, a toggle and an id written by hand, and every panel added
+afterwards would need someone to remember; instead the DOM is walked once, so a new panel is
+collapsible the moment it exists. Headings become real buttons with `aria-expanded` and
+keyboard handling, not clickable text.
+
+Two details that are easy to get wrong:
+
+- **Keys survive a rename.** A panel's own id where it has one, otherwise the section plus
+  the heading's text — because *People* is a heading on both the Dashboard and Insights, and
+  a single key for the two of them would fold them together.
+- **Charts are redrawn when a panel opens, not when it closes.** An SVG laid out inside a
+  hidden panel measures zero and comes back the wrong size. Both renderers derive everything
+  on the spot anyway, so redrawing costs nothing.
+
+---
+
+## Insights — the record as charts
+
+The Dashboard is the summary you read top to bottom. **Insights** is the same record as
+charts you can interrogate, reachable from the nav or from the link at the top of the
+Dashboard.
+
+One filter row — date range, person, deck — sits above everything and scopes every chart,
+tile and table on the page, so no two panels can disagree about which slice they are
+showing. Six charts under it:
+
+| chart | form | why that form |
+| --- | --- | --- |
+| Questions per day | area with a snapping crosshair | change over time; the crosshair means you aim at a date, not at a 2px line |
+| What you did with each card | donut | four parts of one whole, each labelled with its share |
+| How deep you went | horizontal bars | magnitude across an ordered scale |
+| Busiest topics | horizontal bars, top 8 + Other | magnitude across many categories |
+| When you practise | heat grid, hour x weekday | two categorical axes, one magnitude |
+| People | stacked horizontal bars | composition within each person |
+
+Every mark carries a tooltip on hover **and on keyboard focus**, the trend chart walks day
+by day with the arrow keys, and a **Table view** toggle writes every figure out as text.
+
+The filter row is sticky, so changing a range does not mean scrolling back to the top of a
+long page. Clicking a person in the People chart filters to them and clicking again clears
+it — drilling in from the chart you are already reading beats a trip to the dropdown. The
+dropdown itself carries each person’s question count, so you can tell who is worth looking
+at without selecting them one at a time. **Export this slice** writes exactly what the
+filters are showing, named for the slice, and the run numbers in it are walked across the
+whole log rather than the subset — so a filtered export and a full one agree about which
+session a row belongs to, and either can be imported on its own.
+
+### Colour, and why it is the way it is
+
+Two jobs, two treatments. Outcome and person are **identity**, so they take eight fixed
+categorical slots in a stable order — the same outcome is the same hue in the donut and in
+the stacked bars, and filtering a series out never repaints the survivors. Topic volume,
+hour-of-day and depth are **magnitude**, so each takes a single hue stepped light to dark.
+No rainbow, and no hue standing in for a number.
+
+The categorical palette ships two steppings of the same eight hues, one for light grounds
+and one for dark, chosen by the skin rather than by the OS: `paintSkin` stamps
+`data-mode`, and the CSS swaps `--s1`..`--s8`. Both sets were validated against this app's
+real surfaces for lightness band, chroma floor, adjacent-pair separation under
+protanopia / deuteranopia / tritanopia, normal-vision separation, and contrast. Four slots
+land under 3:1 on the light ground, which is exactly why every chart also carries direct
+value labels and the page has a table view — identity is never left to colour alone.
+
+One correction worth recording. Depth first used the app's own `--h1`..`--h5` heat ramp,
+since the cards already use it for sensitivity. That was wrong: it encodes sensitivity as
+an *identity*, is not monotonic in lightness, and opens on a desaturated grey-brown that a
+20px bar cannot carry on a dark panel. Magnitude wants one hue stepped light to dark, so
+depth now uses the accent at stepped opacity.
+
+Below 560px the wide charts scroll inside their own box rather than shrinking — squeezed to
+a phone, the topics chart was rendering nine rows into 128px, which is a picture of a chart
+rather than a chart. The page itself never scrolls sideways.
+
+
+### The filter row, and why it is a container query
+
+Insights opens with three filters and three actions on one line, the actions pushed right by
+`margin-left: auto`. That is correct while they fit and actively wrong the moment they do
+not: the actions wrap to a second line and the auto margin — which is now the only thing on
+that line — shoves them against the right edge, leaving a hole the width of the panel.
+
+The fix is to drop the margin below the width that holds all six, so the actions become a
+row of their own, flush with the fields above them. The question is *which* width, and the
+answer is not the window's. The same panel is 613px inside a 946px window and 1,107px
+inside a 1,440px one, because the rail sits between them — a viewport breakpoint would be
+measuring the wrong box. So `.ins-filters` declares `container-type: inline-size` and the
+rules query **its own width**: one line above 760px, two below it, and below 420px the two
+dropdowns share a line while the range control keeps one to itself.
+
+That last exception is worth stating. Four segments inside half a phone width puts every
+label on two lines — *"30"* over *"days"* — and the control doubles in height to say the
+same thing. The same problem in miniature explains `white-space: nowrap` on the compact
+segments: a flex item's automatic minimum size is its **min-content**, which for *"30 days"*
+is the word *days*, so the browser was free to wrap a label that had room not to. Held on
+one line the control is 28px tall instead of 40px, and nothing is clipped at any width.
+---
+
 ## The dashboard
 
 The deck data carries a **frequency score from 0 to 100** on every question — how often a
@@ -475,10 +926,64 @@ rather than a bag of trivia.
 - **The record** — every question you have been through, newest first, searchable and
   filterable by outcome (asked / warmer / cooler / skipped). Tap any entry to ask it again.
 - **Sessions** — each run with its deck, length, depth reached and topics touched.
-- **Your data** — export to JSON or CSV, import a backup, erase the record, and a
-  running count of how much room the record is taking. `localStorage` is the one
-  resource this app can run out of, and the failure mode — a silent quota error
-  that drops half the events — is worth warning about before it happens.
+- **Your data** — export the CSV, import one back, erase the record, and a running
+  count of how much room the record is taking. `localStorage` is the one resource
+  this app can run out of, and the failure mode — a silent quota error that drops
+  half the events — is worth warning about before it happens.
+
+### One file, readable and complete
+
+There used to be two exports, a JSON backup and a CSV you could read. There is now
+one, because the CSV can be both.
+
+Fifteen columns, all of them meant to be read: `session`, `date`, `time`, `person`,
+`question_id`, `category`, `english`, `chinese`, `outcome`, `level`, `sensitivity`,
+`stage`, `frequency_score`, `deck`, `seconds`. Only `session` is there for the
+machine — which run the event belonged to — because sessions are stored apart from
+events and without it an import could only guess where one conversation ended and
+the next began.
+
+Importing rebuilds everything the dashboard needs — per-question counts, daily
+totals, the people list, each person's seen list and the sessions — deriving them
+rather than storing them, which is what keeps the file a plain table instead of a
+serialisation format wearing a table's clothes. It **merges** through the same path
+a JSON backup used, so importing the same file twice changes nothing and moving a
+phone's record onto a laptop keeps both.
+
+Four details that are easy to get wrong:
+
+- The file starts with a **UTF-8 byte-order mark**. Without it Excel opens a `.csv`
+  using the legacy Windows code page and renders 你 as `ä½ `. The file was always
+  valid UTF-8; the reader needed telling.
+- Fields are **all quoted and parsed properly**, because category names like
+  *Alcohol, substances & risky habits* contain commas that a naive `split(",")`
+  shreds.
+- The time is written **`HH-MM-SS`, not `HH:MM:SS`**. A spreadsheet recognises the
+  colon form as a time, converts it, and shows it back in the machine's locale;
+  with dashes it stays text and reads the same everywhere. The date has no such
+  escape — the file says `YYYY-MM-DD`, and a spreadsheet set to US format will
+  still *display* it as `MM/DD/YYYY`.
+- An empty person column would be ambiguous, so a run with nobody attached says
+  **`Not Mentioned`**. It reads back as nobody, not as a person of that name.
+
+Because the date and time are now the only record of when, the importer reads them
+in whatever shape they come back: `YYYY-MM-DD`, `MM/DD/YYYY` or `DD/MM/YYYY`, with
+`-`, `/` or `.`; times with `-`, `:` or `.`, with or without `am`/`pm`. Where the
+order is genuinely ambiguous — `05/09/2026` — month-first wins, since that is what
+the spreadsheets that rewrite the column produce; a day above 12 settles it either
+way. It also sniffs the delimiter, so a file re-saved by an Excel that uses
+semicolons still opens, matches columns by name so order does not matter and your
+own extra columns are ignored, accepts a bare `140` as well as `Q0140`, and clamps a
+hand-edited level into 1–5 rather than letting it fall off the dashboard's
+histograms in silence.
+
+Sessions come back a few seconds shorter than they were: their bounds are rebuilt
+from the first and last card, which cannot know about the time spent before the
+first question appeared. Everything else round-trips exactly.
+
+Older exports still import. The first one had no `session` column and different
+names for three others; a `timestamp` column, if present, is believed over the
+date and time, since an epoch second cannot be reformatted by a spreadsheet.
 
 Tracking can be switched off in Decks → *Track my questions*. Turning it off stops new
 entries; it never deletes what is already there.

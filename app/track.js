@@ -194,35 +194,312 @@ window.TRACK = (function(){
 
   /* ---------------- export / import / wipe ---------------- */
 
-  function toJSON(extra){
-    return JSON.stringify({
-      app: "4QIAN",
-      exported: new Date().toISOString(),
-      track: T,
-      settings: extra || null
-    }, null, 2);
+  /* ---------------- CSV ----------------
+   *
+   * One row per event, with the question text resolved so the file reads on
+   * its own in a spreadsheet, and complete enough that importing it back
+   * rebuilds the whole record rather than a bare list: the counts, the daily
+   * totals, the people, each person's seen list and the sessions all come
+   * back.
+   *
+   * `session` is the one column here for the machine rather than the reader:
+   * which run the event belonged to. Sessions are stored apart from events,
+   * so without it an import could only guess where one conversation ended
+   * and the next began.
+   *
+   * The time is written HH-MM-SS rather than HH:MM:SS on purpose. A spreadsheet
+   * recognises the colon form as a time, converts it, and then shows it back in
+   * whatever the machine's locale prefers; with dashes it is left alone as text
+   * and reads the same everywhere. The date has no such escape — YYYY-MM-DD is
+   * what the file says, and a spreadsheet set to US format will still display it
+   * as MM/DD/YYYY. importCSV therefore reads a date in any of those shapes.
+   */
+  const CSV_HEAD = ["session", "date", "time", "person", "question_id",
+                    "category", "english", "chinese", "outcome", "level",
+                    "sensitivity", "stage", "frequency_score", "deck", "seconds"];
+
+  /* What the person column says when a run was not tied to anybody. Written
+     out rather than left blank so an empty cell always means "this column had
+     nothing to say", never "there was nobody". */
+  const NO_PERSON = "Not Mentioned";
+
+  /* Written as a code point rather than pasted in, because an invisible
+     character in source is the kind of thing an editor eats silently. */
+  const BOM = String.fromCharCode(0xFEFF);
+
+  const csvCell = v => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+  const pad2 = n => (n < 10 ? "0" : "") + n;
+
+  /**
+   * `keep` is an optional Set of event rows to include — Insights passes the
+   * slice its filters are showing, so you can export exactly what is on
+   * screen. Run numbers are still walked across the WHOLE log rather than the
+   * subset, or a filtered export would renumber its sessions and stop lining
+   * up with a full one.
+   */
+  function toCSV(lookup, deckName, keep){
+    /* Both halves of the stamp are local. They used not to be: the date was
+       sliced out of toISOString() while the time came from toTimeString(),
+       so an evening in UTC+5 was filed under the next day at yesterday's
+       clock time. */
+    const stamp = d => [
+      d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()),
+      pad2(d.getHours()) + "-" + pad2(d.getMinutes()) + "-" + pad2(d.getSeconds())
+    ];
+
+    /* Which run each event belongs to.
+     *
+     * Walked in order, spending each session's own tally as a quota, rather
+     * than asking "whose range contains this timestamp?". Range matching
+     * reads well and quietly fails when two runs begin and end inside the
+     * same second: the first one swallows every later event. The tally
+     * separates them exactly, while the range check still leaves anything
+     * recorded outside a session — a question of the day, a card reopened
+     * from the log — correctly unassigned. Events are in time order, which
+     * is what makes a single pass enough. */
+    const runs = T.ss.map((s, i) => ({from: s[0], to: s[1], left: s[3] | 0, n: i + 1}));
+    let ri = 0;
+    const runOf = ts => {
+      while(ri < runs.length && (runs[ri].left <= 0 || ts > runs[ri].to)) ri++;
+      const r = runs[ri];
+      if(!r || ts < r.from) return "";
+      r.left--;
+      return r.n;
+    };
+
+    const out = [CSV_HEAD.map(csvCell).join(",")];
+    for(const e of T.ev){
+      const run = runOf(e[TS]);           // spent for every row, kept for some
+      if(keep && !keep.has(e)) continue;
+      const q = lookup(e[R]) || [];
+      const when = stamp(new Date(e[TS] * 1000));
+      out.push([
+        run, when[0], when[1],
+        personName(e[PID]) || NO_PERSON,
+        "Q" + String(e[R]).padStart(4, "0"),
+        q.cat || "", q[7] || "", q[8] || "",
+        HOW_NAME[e[HOW]] || e[HOW],
+        e[DEP],
+        q[2] == null ? "" : q[2],
+        q[3] == null ? "" : q[3],
+        q[1] == null ? "" : q[1],
+        deckName ? deckName(e[DK]) : e[DK],
+        e[DW]
+      ].map(csvCell).join(","));
+    }
+
+    /* The byte-order mark is the whole reason the Chinese survives the trip.
+       Excel opens a .csv without one using the legacy Windows code page and
+       renders it as mojibake; the file was always valid UTF-8, the reader
+       just needed telling. */
+    return BOM + out.join("\r\n") + "\r\n";
   }
 
-  /* One row per event, with the question text resolved so the file is
-     readable in a spreadsheet without the app next to it. */
-  function toCSV(lookup){
-    const esc = s => '"' + String(s == null ? "" : s).replace(/"/g,'""') + '"';
-    const out = ["date,time,person,question_id,outcome,depth,deck_index,dwell_seconds,frequency_score,sensitivity,stage,category,english,chinese,pinyin"];
-    for(const e of T.ev){
-      const q = lookup(e[R]) || [];
-      const d = new Date(e[TS]*1000);
-      out.push([
-        d.toISOString().slice(0,10),
-        d.toTimeString().slice(0,8),
-        esc(personName(e[PID])),
-        "Q" + String(e[R]).padStart(4,"0"),
-        HOW_NAME[e[HOW]] || e[HOW],
-        e[DEP], e[DK], e[DW],
-        q[1] == null ? "" : q[1], q[2] == null ? "" : q[2], q[3] == null ? "" : q[3],
-        esc(q.cat || ""), esc(q[7] || ""), esc(q[8] || ""), esc(q[9] || "")
-      ].join(","));
+  /* A real parser rather than split(","). Category names like "Alcohol,
+     substances & risky habits" and any question containing a comma live
+     inside quoted fields, and a naive split shreds them. */
+  function parseCSV(text, sep){
+    const s = text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
+    const rows = [];
+    let row = [], field = "", quoted = false;
+
+    for(let i = 0; i < s.length; i++){
+      const c = s[i];
+      if(quoted){
+        if(c !== '"'){ field += c; continue; }
+        if(s[i + 1] === '"'){ field += '"'; i++; }   // "" is one literal quote
+        else quoted = false;
+        continue;
+      }
+      if(c === '"')       quoted = true;
+      else if(c === sep)  { row.push(field); field = ""; }
+      else if(c === "\n") { row.push(field); field = ""; rows.push(row); row = []; }
+      else if(c !== "\r") field += c;
     }
-    return out.join("\r\n");
+    if(field !== "" || row.length){ row.push(field); rows.push(row); }
+    return rows.filter(r => r.some(f => f !== ""));
+  }
+
+  /* Excel in a locale that uses the comma as a decimal separator writes CSVs
+     with semicolons, and calls them .csv all the same. Sniffed from the first
+     line, outside quotes, so a file re-saved from a spreadsheet still opens. */
+  function sniffSep(text){
+    const line = text.split("\n")[0] || "";
+    let best = ",", most = -1;
+    for(const sep of [",", ";", "\t"]){
+      let n = 0, quoted = false;
+      for(const c of line){
+        if(c === '"') quoted = !quoted;
+        else if(c === sep && !quoted) n++;
+      }
+      if(n > most){ most = n; best = sep; }
+    }
+    return best;
+  }
+
+  /* Dates come back in whatever shape the spreadsheet felt like writing.
+     YYYY-MM-DD is what this app exports; the rest is what Excel hands back
+     after it has decided the column was a date. Where the order is genuinely
+     ambiguous — 05/09/2026 — month-first wins, because that is the layout the
+     spreadsheets that rewrite the column use. A day above 12 settles it. */
+  function parseDate(v){
+    const s = String(v || "").trim();
+    let m;
+    if((m = /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/.exec(s)))
+      return {y: +m[1], m: +m[2], d: +m[3]};
+    if((m = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/.exec(s))){
+      const a = +m[1], b = +m[2];
+      return a > 12 ? {y: +m[3], m: b, d: a} : {y: +m[3], m: a, d: b};
+    }
+    return null;
+  }
+
+  /* HH-MM-SS is what this app writes. A colon, a dot, or a trailing am/pm is
+     what comes back from a spreadsheet that parsed the column anyway. */
+  function parseClock(v){
+    const s = String(v || "").trim().toLowerCase();
+    const pm = /\bpm\b/.test(s), am = /\bam\b/.test(s);
+    const n = s.replace(/[ap]m/g, "").trim().split(/[-:. ]+/).map(x => parseInt(x, 10));
+    let h = isFinite(n[0]) ? n[0] : 0;
+    if(pm && h < 12) h += 12;
+    if(am && h === 12) h = 0;
+    return {h, mi: isFinite(n[1]) ? n[1] : 0, se: isFinite(n[2]) ? n[2] : 0};
+  }
+
+  function whenOf(date, time){
+    const d = parseDate(date);
+    if(!d) return NaN;
+    const t = parseClock(time);
+    return Math.floor(new Date(d.y, d.m - 1, d.d, t.h, t.mi, t.se).getTime() / 1000);
+  }
+
+  /**
+   * Rebuild a record from an exported CSV and merge it in.
+   *
+   * Counts, daily totals, people, seen lists and sessions are all derived
+   * here rather than stored in the file, which keeps the CSV a plain
+   * rectangular table a person can read instead of a serialisation format
+   * wearing a table's clothes.
+   *
+   * The merge goes through importJSON, so there is one implementation of
+   * "combine two records" rather than two that can drift apart.
+   */
+  function importCSV(text, deckIndex){
+    if(!String(text || "").trim()) throw new Error("That file is empty.");
+    const rows = parseCSV(text, sniffSep(text));
+    if(rows.length < 2) throw new Error("That CSV has a header but no rows under it.");
+
+    /* Headers are matched on name, so column order does not matter and extra
+       columns of your own are ignored rather than fatal. */
+    const col = {};
+    rows[0].forEach((h, i) => {
+      const k = String(h).trim().toLowerCase().replace(/\s+/g, "_");
+      if(col[k] === undefined) col[k] = i;
+    });
+    if(col.question_id === undefined)
+      throw new Error("That is not a 4QIAN export — it has no question_id column.");
+    if(col.timestamp === undefined && (col.date === undefined || col.time === undefined))
+      throw new Error("That CSV has no date and time columns to place its rows in.");
+
+    const howOf = {};
+    HOW_NAME.forEach((n, i) => howOf[n.toLowerCase()] = i);
+
+    const rec = {v:1, ev:[], ss:[], cnt:{}, day:{}, first:0, tot:0, pp:[], seen:{}};
+    const pidOf = nm => {
+      const k = String(nm || "").trim();
+      /* The export writes "Not Mentioned" where a run had nobody attached, so
+         it reads back as nobody rather than as a person of that name. */
+      if(!k || k.toLowerCase() === NO_PERSON.toLowerCase()) return -1;
+      const at = rec.pp.findIndex(p => p.toLowerCase() === k.toLowerCase());
+      if(at >= 0) return at;
+      rec.pp.push(k.slice(0, 24));
+      return rec.pp.length - 1;
+    };
+
+    const runs = new Map();
+    let used = 0, skipped = 0;
+
+    for(let r = 1; r < rows.length; r++){
+      const row = rows[r];
+      const at = k => col[k] === undefined ? ""
+                    : String(row[col[k]] == null ? "" : row[col[k]]).trim();
+
+      /* A bare number is as acceptable as Q0156: a spreadsheet that decided
+         the column was numeric will have stripped the prefix and the zeros. */
+      const rank = parseInt(at("question_id").replace(/^q/i, ""), 10);
+
+      /* Rebuilt from the local date and time it was written with. A file that
+         still carries the old timestamp column is believed instead, since an
+         epoch second cannot be reformatted by a spreadsheet.
+
+         One thing no code can recover: the very first export took its date
+         from UTC and its time from local, so an evening row in it is filed a
+         day late. That was never written down correctly to begin with. */
+      const ts = col.timestamp !== undefined && at("timestamp")
+        ? parseInt(at("timestamp"), 10)
+        : whenOf(at("date"), at("time"));
+      if(!isFinite(rank) || rank < 0 || !isFinite(ts) || ts <= 0){ skipped++; continue; }
+
+      const pid   = pidOf(at("person"));
+      const how   = howOf[at("outcome").toLowerCase()];
+      const level = parseInt(at("level") || at("depth"), 10);
+      const secs  = parseInt(at("seconds") || at("dwell_seconds"), 10);
+      /* Newer files name their deck; the first one wrote a bare index. */
+      const deck  = col.deck !== undefined
+        ? (deckIndex ? deckIndex(at("deck")) : parseInt(at("deck"), 10))
+        : parseInt(at("deck_index"), 10);
+
+      /* Clamped rather than trusted. A hand-edited row with level 9 in it
+         would otherwise reach the dashboard's five-slot histograms and be
+         dropped silently there instead of loudly here. */
+      const lv = isFinite(level) ? Math.min(5, Math.max(1, level)) : 1;
+      rec.ev.push([rank, ts, isFinite(how) ? how : 0, lv,
+                   isFinite(deck) ? deck : 0,
+                   isFinite(secs) && secs > 0 ? Math.min(secs, 86400) : 0, pid]);
+      used++;
+
+      rec.cnt[rank] = (rec.cnt[rank] | 0) + 1;
+      const d = new Date(ts * 1000);
+      const dk = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+      rec.day[dk] = (rec.day[dk] | 0) + 1;
+
+      if(pid >= 0){
+        const seen = rec.seen[pid] || (rec.seen[pid] = []);
+        if(seen.indexOf(rank) === -1) seen.push(rank);
+      }
+
+      /* Sessions are rebuilt from the run each event names. Start and end
+         come from the first and last card in it, so a re-imported session
+         runs a few seconds shorter than the original — it cannot know about
+         the time spent before the first question appeared. */
+      const run = at("session");
+      if(!run) continue;
+      let g = runs.get(run);
+      if(!g){
+        g = {from: ts, to: ts, deck: isFinite(deck) ? deck : 0,
+             n: 0, deepest: 0, topics: new Set(), pid};
+        runs.set(run, g);
+      }
+      g.from = Math.min(g.from, ts);
+      g.to   = Math.max(g.to, ts);
+      g.n++;
+      g.deepest = Math.max(g.deepest, lv);
+      if(at("category")) g.topics.add(at("category"));
+    }
+
+    if(!used) throw new Error(
+      skipped ? `None of the ${skipped} rows had a readable question and date.`
+              : "That CSV had no readable rows.");
+
+    for(const g of runs.values())
+      rec.ss.push([g.from, g.to, g.deck, g.n, g.deepest, g.topics.size, g.pid]);
+    rec.ss.sort((a, b) => a[0] - b[0]);
+
+    rec.first = rec.ev.reduce((m, e) => m ? Math.min(m, e[TS]) : e[TS], 0);
+    rec.tot = Object.values(rec.day).reduce((a, b) => a + b, 0);
+
+    const got = importJSON(JSON.stringify({app: "4QIAN", track: rec}));
+    return {events: got.events, sessions: got.sessions, read: used, skipped};
   }
 
   function importJSON(text){
@@ -285,5 +562,5 @@ window.TRACK = (function(){
           setEnabled, record, sessionStart, sessionEnd,
           events, sessions, counts, days, total, first, uniques, streak,
           personId, people, personName, personStats, seenBy, markSeen, forgetSeen,
-          toJSON, toCSV, importJSON, wipe, flush, dayKey};
+          toCSV, importCSV, importJSON, wipe, flush, dayKey};
 })();

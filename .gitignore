@@ -1,6 +1,7 @@
 .claude/
 node_modules/
 release/
+4QIAN-DATABASE/
 extracted/
 tools/
 android/www/

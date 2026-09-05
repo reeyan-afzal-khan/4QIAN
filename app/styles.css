@@ -8,6 +8,9 @@
   --acc:#FFCE1F; --acc-hi:#FFE066; --acc-dim:#7A6412; --acc-wash:#221C06;
   --h1:#6B6759; --h2:#9C8433; --h3:#D9A81C; --h4:#FFC220; --h5:#FF7A18;
   --on-acc:#08080A; --stripe:#08080A;
+  /* The rail sits on its own token so a skin can tone it apart from the
+     panels. Every theme but Discord leaves it equal to --surface. */
+  --rail:#121215;
   --r:13px;
   --shadow:0 1px 2px rgba(0,0,0,.6), 0 14px 34px -18px rgba(0,0,0,.9);
 }
@@ -40,7 +43,7 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:none;tex
    read as rising intensity. Bare :root above is Hazard, the default. */
 :root[data-skin="terminal"]{
   color-scheme:dark;
-  --void:#050805; --surface:#0C120C; --surface-2:#121A12; --surface-3:#18231A;
+  --void:#050805; --rail:#0C120C; --surface:#0C120C; --surface-2:#121A12; --surface-3:#18231A;
   --line:#1E2C1E; --line-hot:#2A3F2A;
   --ink:#D8F5D0; --ink-soft:#9CCB94; --muted:#6A8A66;
   --acc:#4AE84A; --acc-hi:#8CFF8C; --acc-dim:#1F5A1F; --acc-wash:#0A1A0A;
@@ -50,7 +53,7 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:none;tex
 }
 :root[data-skin="blueprint"]{
   color-scheme:dark;
-  --void:#0A1220; --surface:#101B2E; --surface-2:#16243A; --surface-3:#1E2F49;
+  --void:#0A1220; --rail:#101B2E; --surface:#101B2E; --surface-2:#16243A; --surface-3:#1E2F49;
   --line:#22354F; --line-hot:#2E4869;
   --ink:#E8F1FA; --ink-soft:#B4CBE2; --muted:#7690AC;
   --acc:#4FC3F7; --acc-hi:#8AD8FB; --acc-dim:#1D4F6B; --acc-wash:#0D2130;
@@ -60,7 +63,7 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:none;tex
 }
 :root[data-skin="cinnabar"]{
   color-scheme:light;
-  --void:#EFEBE0; --surface:#F7F4EC; --surface-2:#EDE8DB; --surface-3:#E3DDCD;
+  --void:#EFEBE0; --rail:#F7F4EC; --surface:#F7F4EC; --surface-2:#EDE8DB; --surface-3:#E3DDCD;
   --line:#D9D1BE; --line-hot:#C4B49B;
   --ink:#1C1A17; --ink-soft:#4A453C; --muted:#7D7565;
   --acc:#C1272D; --acc-hi:#8E1418; --acc-dim:#DFB3B0; --acc-wash:#F7E9E7;
@@ -70,7 +73,7 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:none;tex
 }
 :root[data-skin="sounding"]{
   color-scheme:light;
-  --void:#EEF2F4; --surface:#FFFFFF; --surface-2:#F5F8FA; --surface-3:#E9EFF3;
+  --void:#EEF2F4; --rail:#FFFFFF; --surface:#FFFFFF; --surface-2:#F5F8FA; --surface-3:#E9EFF3;
   --line:#D6DFE5; --line-hot:#BCC9D2;
   --ink:#101820; --ink-soft:#38444F; --muted:#64717D;
   --acc:#2F7D8C; --acc-hi:#1E5A66; --acc-dim:#B5D2D8; --acc-wash:#E6F1F3;
@@ -80,7 +83,7 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:none;tex
 }
 :root[data-skin="daylight"]{
   color-scheme:light;
-  --void:#F4F5F7; --surface:#FFFFFF; --surface-2:#F7F8FA; --surface-3:#ECEEF2;
+  --void:#F4F5F7; --rail:#FFFFFF; --surface:#FFFFFF; --surface-2:#F7F8FA; --surface-3:#ECEEF2;
   --line:#DFE2E8; --line-hot:#C6CBD4;
   --ink:#14161A; --ink-soft:#3C424B; --muted:#6C7480;
   --acc:#3D3BC4; --acc-hi:#2A289C; --acc-dim:#C3C2EC; --acc-wash:#EEEEFB;
@@ -204,8 +207,8 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:none;tex
 .deck small{grid-area:2/2/3/3;align-self:start;font-size:12px;color:var(--muted);line-height:1.45}
 .deck .cnt{grid-area:1/3/3/4;align-self:center;font-size:11.5px;color:var(--muted);
   font-variant-numeric:tabular-nums;text-align:right;line-height:1.3;white-space:nowrap}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;box-shadow:var(--shadow)}
-.panel h3{font-size:12px;font-weight:700;margin-bottom:10px;letter-spacing:.02em;
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:17px 18px;box-shadow:var(--shadow)}
+.panel h3{font-size:12px;font-weight:700;margin-bottom:13px;letter-spacing:.02em;
   display:flex;gap:8px;align-items:baseline}
 .seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--surface-2)}
 .seg button{flex:1;padding:9px 5px;font-size:12px;font-weight:600;color:var(--muted);
@@ -285,17 +288,34 @@ dialog::backdrop{background:rgba(4,4,6,.78)}
    instead of competing with the title for space on a phone.
    ================================================================ */
 .mast{flex-wrap:wrap}
-.navrow{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--surface);
+/* Seven destinations: 4+3 on a phone rather than 3+3+1, which is one row of
+   vertical space saved and a tidier shape. One row once there is room. */
+.navrow{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--rail);
   border:1px solid var(--line);border-radius:10px;padding:3px}
-.navrow button{padding:9px 4px;border-radius:7px;font-size:12px;font-weight:600;color:var(--muted);
-  text-align:center;transition:all .16s;white-space:nowrap}
+@media (min-width:620px){.navrow{grid-template-columns:repeat(7,1fr)}}
+/* Icon over label on a phone, icon beside label in the rail. Seven
+   destinations is past the point where a column of words alone is scannable —
+   the glyph is what the eye lands on, and the word is what confirms it. */
+.navrow button{padding:8px 2px;border-radius:7px;font-size:11px;font-weight:600;
+  color:var(--muted);text-align:center;transition:all .16s;white-space:nowrap;
+  display:flex;flex-direction:column;align-items:center;gap:3px;line-height:1.15}
+.navrow button svg{width:19px;height:19px;flex:none;fill:none;stroke:currentColor;
+  stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+/* The pressed tab paints its icon in the same ink as its label, so the two
+   never read as two different states. */
+.navrow button[aria-pressed="true"] svg{stroke:currentColor}
+@media (max-width:380px){.navrow button{padding:8px 1px;font-size:10.5px;letter-spacing:-.01em}}
 .navrow button[aria-pressed="true"]{background:var(--acc);color:var(--on-acc)}
 .navrow button:hover:not([aria-pressed="true"]){color:var(--ink);background:var(--surface-2)}
 
 /* ================================================================
    DASHBOARD
    ================================================================ */
-.dash{display:flex;flex-direction:column;gap:14px}
+.dash{display:flex;flex-direction:column;gap:18px}
+/* The views stack their panels; the gap used to live in an inline style on
+   each <section>, which meant no media query could ever widen it. */
+#v-setup,#v-session,#v-settings{display:flex;flex-direction:column;gap:14px}
+#v-browse,#v-words,#v-saved{display:flex;flex-direction:column;gap:12px}
 .dash-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .dash-h h2{font-family:Fraunces,Georgia,serif;font-size:19px;font-weight:600}
 
@@ -313,7 +333,11 @@ dialog::backdrop{background:rgba(4,4,6,.78)}
 /* --- generic panel bits --- */
 .panel h3 .lbl{margin-left:auto}
 .pmeta{font-size:11.5px;color:var(--muted);line-height:1.55;margin:0 0 10px}
-.seg.mini-seg button{padding:7px 5px;font-size:11.5px}
+/* The compact segments carry two-word labels in a narrow box. Left to wrap,
+   a flex item's minimum size is its min-content — one word — so "30 days"
+   sets itself as "30" over "days" and the control is 40px tall for no
+   reason. Held on one line it is 28px and reads at a glance. */
+.seg.mini-seg button{padding:7px 5px;font-size:11.5px;white-space:nowrap}
 
 /* --- bar list (coverage, categories, most-asked) --- */
 .blist{display:flex;flex-direction:column;gap:1px}
@@ -400,8 +424,13 @@ dialog::backdrop{background:rgba(4,4,6,.78)}
 .streak i.dim{background:var(--acc-dim)}
 
 /* --- data row buttons --- */
-.datarow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.datarow .ghost{align-self:stretch;width:100%}
+/* A row that fills its width, with the irreversible action held away from the
+   two you actually use. A 2-column grid left the third button stranded at half
+   width on a line of its own. */
+.datarow{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+.datarow .ghost{flex:1 1 auto;min-width:130px;align-self:stretch;width:auto}
+.datarow .danger{flex:0 1 auto;margin-left:auto}
+@media (max-width:420px){.datarow .danger{margin-left:0;flex:1 1 100%}}
 .danger{color:#E2705A;border-color:#5A241A}
 .danger:hover{color:#FF9C88;border-color:#8A3423}
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:9998;
@@ -419,7 +448,7 @@ dialog::backdrop{background:rgba(4,4,6,.78)}
    ================================================================ */
 :root[data-skin="gruvbox"]{
   color-scheme:dark;
-  --void:#1D2021; --surface:#282828; --surface-2:#32302F; --surface-3:#3C3836;
+  --void:#1D2021; --rail:#282828; --surface:#282828; --surface-2:#32302F; --surface-3:#3C3836;
   --line:#504945; --line-hot:#665C54;
   --ink:#FBF1C7; --ink-soft:#D5C4A1; --muted:#928374;
   --acc:#FABD2F; --acc-hi:#FFD75F; --acc-dim:#79671F; --acc-wash:#32302A;
@@ -429,7 +458,7 @@ dialog::backdrop{background:rgba(4,4,6,.78)}
 }
 :root[data-skin="gruvbox-light"]{
   color-scheme:light;
-  --void:#FBF1C7; --surface:#F9F5D7; --surface-2:#F2E5BC; --surface-3:#EBDBB2;
+  --void:#FBF1C7; --rail:#F9F5D7; --surface:#F9F5D7; --surface-2:#F2E5BC; --surface-3:#EBDBB2;
   --line:#D5C4A1; --line-hot:#BDAE93;
   --ink:#282828; --ink-soft:#504945; --muted:#7C6F64;
   --acc:#AF3A03; --acc-hi:#9D0006; --acc-dim:#D8B48C; --acc-wash:#F4E3C3;
@@ -562,7 +591,7 @@ mark{background:var(--acc-wash);color:var(--acc);padding:0 1px;border-radius:3px
 
 /* ---------- print: the record, on paper ---------- */
 @media print{
-  .navrow,.mast,#v-setup,#v-session,#v-browse,#v-saved,.datarow,.toast,.skip{display:none!important}
+  .navrow,.rail,.mast,#v-setup,#v-session,#v-browse,#v-saved,.datarow,.toast,.skip{display:none!important}
   body,html{background:#fff;color:#000}
   .panel{break-inside:avoid;border-color:#ccc;box-shadow:none}
 }
@@ -570,10 +599,6 @@ mark{background:var(--acc-wash);color:var(--acc);padding:0 1px;border-radius:3px
 /* ================================================================
    STUDY — the word breakdown and the sample answer, under the card
    ================================================================ */
-.navrow{grid-template-columns:repeat(5,1fr)}
-.navrow button{padding:9px 2px;font-size:11.5px}
-@media (max-width:380px){.navrow button{padding:8px 1px;font-size:10.5px;letter-spacing:-.01em}}
-
 .study{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
   box-shadow:var(--shadow);overflow:hidden}
 .study-h{display:flex;align-items:center;gap:10px;width:100%;padding:11px 13px;
@@ -662,7 +687,7 @@ mark{background:var(--acc-wash);color:var(--acc);padding:0 1px;border-radius:3px
    ================================================================ */
 :root[data-skin="ember"]{
   color-scheme:dark;
-  --void:#000000; --surface:#0D0B0A; --surface-2:#161211; --surface-3:#211A17;
+  --void:#000000; --rail:#0D0B0A; --surface:#0D0B0A; --surface-2:#161211; --surface-3:#211A17;
   --line:#2E2320; --line-hot:#48342C;
   --ink:#F7EDE6; --ink-soft:#D2BFB2; --muted:#8C7A70;
   --acc:#FF6B18; --acc-hi:#FF8F4D; --acc-dim:#6B2E0C; --acc-wash:#1E100A;
@@ -768,19 +793,36 @@ body.touring{overflow:hidden}
    exchange app. Neither is a copy of a product's palette — they are
    the same neighbourhood, so the two windows look related.
    ================================================================ */
+:root[data-skin="discord"]{
+  color-scheme:dark;
+  /* Discord's own three grounds, in Discord's own order: the server rail is
+     the page, the channel sidebar is the rail, and the chat area is where
+     content sits. Getting that stack the right way round is most of why the
+     theme reads as Discord rather than as "a dark theme that is blue". */
+  --void:#1E1F22; --rail:#2B2D31; --surface:#313338; --surface-2:#2B2D31;
+  --surface-3:#3F4147;
+  --line:#3F4147; --line-hot:#4E5058;
+  --ink:#F2F3F5; --ink-soft:#DBDEE1; --muted:#949BA4;
+  --acc:#5865F2; --acc-hi:#7983F5; --acc-dim:#3C45A5; --acc-wash:#2B2D4A;
+  --on-acc:#FFFFFF; --stripe:#1E1F22;
+  --h1:#949BA4; --h2:#23A559; --h3:#5865F2; --h4:#EB459F; --h5:#F0B232;
+  --r:8px;
+  --shadow:0 1px 0 rgba(0,0,0,.2), 0 8px 16px rgba(0,0,0,.24);
+}
 :root[data-skin="blurple"]{
   color-scheme:dark;
-  --void:#1E1F22; --surface:#2B2D31; --surface-2:#313338; --surface-3:#383A40;
-  --line:#3F4147; --line-hot:#4E5058;
-  --ink:#F2F3F5; --ink-soft:#B5BAC1; --muted:#80848E;
-  --acc:#5865F2; --acc-hi:#7983F5; --acc-dim:#3C45A5; --acc-wash:#25264A;
-  --on-acc:#FFFFFF; --stripe:#1E1F22;
-  --h1:#80848E; --h2:#3BA55D; --h3:#5865F2; --h4:#EB459E; --h5:#F0B232;
+  --void:#161622; --rail:#1E1E2E; --surface:#1E1E2E; --surface-2:#26263A;
+  --surface-3:#2F2F47;
+  --line:#33334D; --line-hot:#454569;
+  --ink:#F3F2FA; --ink-soft:#C9C6DE; --muted:#8B8BA7;
+  --acc:#7A6BFF; --acc-hi:#9A8FFF; --acc-dim:#4B40A8; --acc-wash:#221D45;
+  --on-acc:#FFFFFF; --stripe:#161622;
+  --h1:#8B8BA7; --h2:#43C59E; --h3:#7A6BFF; --h4:#E86AC4; --h5:#F5B944;
   --shadow:0 1px 2px rgba(0,0,0,.5), 0 14px 34px -18px rgba(0,0,0,.9);
 }
 :root[data-skin="sky"]{
   color-scheme:light;
-  --void:#F2F5F9; --surface:#FFFFFF; --surface-2:#F5F8FC; --surface-3:#E8EEF6;
+  --void:#F2F5F9; --rail:#FFFFFF; --surface:#FFFFFF; --surface-2:#F5F8FC; --surface-3:#E8EEF6;
   --line:#DCE4EE; --line-hot:#C3CFDF;
   --ink:#101725; --ink-soft:#3B475C; --muted:#6B7A90;
   --acc:#1573E6; --acc-hi:#0E5CBD; --acc-dim:#B6D3F6; --acc-wash:#E8F1FD;
@@ -851,4 +893,333 @@ body.touring{overflow:hidden}
    direction and asking for another of the same are different kinds of
    decision, and the space says so. */
 #controls-wrap{display:flex;flex-direction:column;gap:18px}
+
+/* ================= INSIGHTS =================
+ *
+ * The categorical series palette. Eight fixed slots, assigned in order and
+ * never cycled — a ninth series folds into "Other" instead of inventing a hue.
+ *
+ * Two steppings of the same eight hues, one for light grounds and one for dark,
+ * picked by the skin's own ground rather than by the OS: paintSkin stamps
+ * data-mode. Both sets were validated against this app's real surfaces
+ * (#FBF1C7 light, #08080A dark) for lightness band, chroma floor, adjacent-pair
+ * separation under protanopia/deuteranopia/tritanopia, normal-vision separation
+ * and contrast. On the light ground four slots land under 3:1 against the
+ * surface, which is why every chart here also carries direct labels and the
+ * page has a table view — identity is never left to colour alone. */
+:root{
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
+  --s5:#e87ba4; --s6:#008300; --s7:#4a3aa7; --s8:#e34948;
+}
+:root[data-mode="dark"]{
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+  --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+}
+
+/* --- filter row --- */
+/* The filter row scopes the whole page, and the page is long — so it comes
+   with you instead of making you scroll back up to change a range. */
+/* Queried on its own width, not the window's. The panel is 600px inside a
+   946px window and 1,050px inside a 1,440px one, because the rail is in
+   between — a viewport breakpoint would be measuring the wrong box. */
+.ins-filters{padding:12px 14px;position:sticky;top:6px;z-index:4;
+  container-type:inline-size}
+@media (max-width:560px){.ins-filters{position:static}}
+.ins-frow{display:flex;flex-wrap:wrap;gap:14px 18px;align-items:flex-end}
+.ins-fgroup{display:flex;flex-direction:column;gap:5px;min-width:0}
+.ins-fright{margin-left:auto;flex-direction:row;gap:8px;align-items:center;
+  flex-wrap:wrap}
+/* Below the width that holds three fields and three buttons on one line, the
+   auto margin is what breaks the layout: the buttons drop to a second line
+   and get shoved against the right edge, leaving a gap the width of the
+   panel. So take the margin away and let them be a row of their own, flush
+   with the fields above them. */
+@container (max-width:760px){
+  .ins-fright{margin-left:0;width:100%}
+}
+/* Narrower still: the two dropdowns share a line rather than each taking one.
+   The range control does not join them — four segments inside half a phone
+   width puts every label on two lines ("30" over "days"), so it keeps a row
+   of its own where its segments can stay one word each. */
+@container (max-width:420px){
+  .ins-frow{gap:11px 12px}
+  .ins-fgroup:has(.seg){flex:1 1 100%}
+  .ins-fgroup:has(select){flex:1 1 150px}
+  .ins-seg-wide,.ins-fgroup:has(.seg) .seg{width:100%}
+  .ins-sel{max-width:none;width:100%}
+  .ins-fright > button{flex:1 1 auto;text-align:center}
+}
+.ins-flabel{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);font-weight:600}
+.ins-sel{appearance:none;background:var(--surface-2);color:var(--ink);
+  border:1px solid var(--line);border-radius:9px;padding:7px 26px 7px 10px;
+  font:inherit;font-size:12.5px;max-width:190px;cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),
+                   linear-gradient(135deg,currentColor 50%,transparent 50%);
+  background-position:calc(100% - 14px) 50%,calc(100% - 9px) 50%;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+.ins-sel:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+button.ghost.sm{padding:7px 11px;font-size:12px}
+
+.ins-two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:700px){.ins-two{grid-template-columns:1fr}}
+
+/* --- chart chrome ---
+   Axes and grid are deliberately recessive: hairlines at low opacity so the
+   data is the only thing with weight on the page. */
+.chart{position:relative;width:100%}
+/* The wide charts carry a label column and a lot of rows. Scaled down to a
+   phone they end up at 14px a row, which is a picture of a chart rather than a
+   chart — so below their natural width they scroll inside their own box
+   instead, and the page itself never scrolls sideways. */
+.chart.wide{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+.chart.wide svg{min-width:560px}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart .vgrid{stroke:var(--line);stroke-width:1;opacity:.55}
+.chart .vaxis{fill:var(--muted);font-size:10px;font-variant-numeric:tabular-nums}
+.chart .vaxis-strong{fill:var(--ink-soft);font-size:10.5px;font-weight:600}
+.chart .vlabel{fill:var(--ink);font-size:10.5px;font-weight:600;
+  font-variant-numeric:tabular-nums}
+.chart .vlabel.out{fill:var(--muted);font-weight:500}
+/* 2px of surface between adjacent fills, so touching marks stay separable
+   without a stroke doing the work. */
+.chart .vmark{stroke:var(--surface);stroke-width:2;paint-order:stroke fill}
+.chart .vmark.vflat{stroke:none}
+.chart .vhit{fill:transparent;cursor:pointer}
+.chart .vhit:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
+.chart .vlift{opacity:0;transition:opacity .12s}
+.chart .vrow:hover .vlift,.chart .vrow:focus-within .vlift{opacity:.16}
+.chart .vcross{stroke:var(--ink-soft);stroke-width:1;stroke-dasharray:3 3;opacity:.7}
+.chart .vdot{stroke:var(--surface);stroke-width:2}
+
+.vempty{color:var(--muted);font-size:12px;padding:22px 0;text-align:center}
+
+/* --- legend ---
+   Always present from two series up; rect keys for bars and areas, matching
+   the mark the reader is looking at. */
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:11px}
+.legend span{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;
+  color:var(--ink-soft)}
+.legend i{width:11px;height:11px;border-radius:3px;flex:none}
+.legend b{font-variant-numeric:tabular-nums;color:var(--muted);font-weight:500}
+
+/* --- tooltip ---
+   Value first and loud, series name second: the reader already knows which
+   mark they are pointing at and wants the number. */
+.tip{position:absolute;pointer-events:none;z-index:5;opacity:0;transform:translate(-50%,-100%);
+  background:var(--surface-2);border:1px solid var(--line);border-radius:9px;
+  padding:7px 10px;box-shadow:var(--shadow);min-width:96px;transition:opacity .1s}
+.tip.on{opacity:1}
+.tip .tk{font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);font-weight:600;margin-bottom:3px}
+.tip .tv{font-family:Fraunces,Georgia,serif;font-size:19px;font-weight:600;
+  color:var(--ink);line-height:1.1;font-variant-numeric:tabular-nums}
+.tip .trow{display:flex;align-items:center;gap:7px;font-size:11.5px;
+  color:var(--ink-soft);margin-top:4px}
+.tip .trow i{width:10px;height:2px;border-radius:2px;flex:none}
+.tip .trow b{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--ink)}
+
+/* --- table view (the relief for low-contrast slots, and the keyboard path) --- */
+.ins-tablewrap{overflow-x:auto}
+.ins-tablewrap table{border-collapse:collapse;width:100%;font-size:12px}
+.ins-tablewrap caption{text-align:left;font-size:10px;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--muted);font-weight:600;padding:14px 0 6px}
+.ins-tablewrap th,.ins-tablewrap td{text-align:left;padding:6px 10px 6px 0;
+  border-bottom:1px solid var(--line);white-space:nowrap}
+.ins-tablewrap th{color:var(--muted);font-weight:600;font-size:10.5px;
+  letter-spacing:.05em;text-transform:uppercase}
+.ins-tablewrap td.n{text-align:right;font-variant-numeric:tabular-nums}
+.ins-tablewrap td i{width:9px;height:9px;border-radius:2px;display:inline-block;
+  margin-right:7px;vertical-align:baseline}
+
+/* A button that reads as a link: it navigates, so it should look like it does,
+   but it is a button because it changes a view rather than fetching a URL. */
+.linky{color:var(--acc);font:inherit;font-weight:600;text-decoration:underline;
+  text-underline-offset:2px;padding:0;background:none;border:0;cursor:pointer}
+.linky:hover{text-decoration-thickness:2px}
+.linky:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:3px}
+
+/* --- Google Drive panel --- */
+#drive-panel .bad,#drive-panel p.bad{color:var(--h5)}
+.drive-files{display:flex;flex-direction:column;gap:1px;margin-top:12px}
+.drive-file{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 10px;
+  align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line)}
+.drive-file:last-child{border-bottom:none}
+.drive-file .dfn{font-size:12.5px;color:var(--ink);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.drive-file .dfm{font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums;
+  white-space:nowrap}
+.drive-file .dfa{display:flex;gap:6px}
+.drive-file button{font-size:11px;padding:4px 9px;border-radius:7px;
+  border:1px solid var(--line);color:var(--muted);font-weight:600}
+.drive-file button:hover{color:var(--ink);border-color:var(--line-hot)}
+.drive-file button.dfx:hover{color:#FF9C88;border-color:#8A3423}
+
+/* --- where exports go --- */
+.fold-row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;
+  margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.fold-what{flex:1 1 220px;min-width:0}
+.fold-what b{font-size:12.5px;color:var(--ink);display:block;overflow:hidden;
+  text-overflow:ellipsis}
+.fold-acts{display:flex;flex-wrap:wrap;gap:8px;margin-left:auto}
+
+/* ================= WIDE LAYOUT =================
+ *
+ * Below 900px nothing here applies and the app stays exactly what it was: a
+ * single column with the tabs across the top, which is right on a phone and is
+ * where most of its use happens.
+ *
+ * Above 900px the same markup becomes two columns — the masthead and tabs move
+ * into a sticky rail on the left, and everything else gets the width back. The
+ * tabs were costing two rows of vertical space on every screen; standing them
+ * up in a column costs none, because the rail is beside the content rather
+ * than above it.
+ *
+ * No markup changed to do this. The nav is the same <nav>, the same buttons and
+ * the same handlers — only the grid area and the flex direction differ, so
+ * there is no second navigation to keep in step with the first.
+ */
+@media (min-width:900px){
+  /* Two rows, so the masthead and the tabs each own one and cannot overlap.
+     An earlier version stacked both into a single rail area and pushed the nav
+     down by a hard-coded 58px — which is a measurement waiting to go stale the
+     moment the masthead changes height. */
+  .wrap{
+    /* Wide enough that a maximised window is actually used. The measure is
+       defended where it matters — the question card and the tagline set their
+       own — rather than by starving every table and chart of width. */
+    max-width:1800px;
+    display:grid;
+    grid-template-columns:236px minmax(0,1fr);
+    grid-template-rows:auto minmax(0,1fr);
+    grid-template-areas:
+      "mast main"
+      "rail main";
+    align-items:start;
+    gap:14px 30px;
+    padding:20px 26px 56px;
+  }
+
+  /* One sticky block holds the tabs and the status card, so the card cannot
+     drift out of step with the nav and neither needs a hard-coded offset. */
+  .rail{grid-area:rail;position:sticky;top:20px;align-self:start;
+    display:flex;flex-direction:column;gap:10px}
+  .railcard{display:flex;flex-direction:column;gap:2px;
+    background:var(--rail);border:1px solid var(--line);
+    border-radius:var(--r);padding:7px 5px;box-shadow:var(--shadow)}
+
+  .mast{grid-area:mast;flex-wrap:wrap;margin:0}
+
+  /* The tabs stay in view while a long dashboard scrolls past them. */
+  .navrow{display:flex;flex-direction:column;gap:2px;padding:6px}
+  .navrow button{flex-direction:row;justify-content:flex-start;
+    text-align:left;padding:10px 12px;font-size:13px;gap:11px}
+  .navrow button svg{width:17px;height:17px}
+
+  #main{grid-area:main;min-width:0}
+
+  /* Reading and answering want a measure, not the whole window: a question at
+     1,100px is a worse question. Panels, tables and charts take the width. */
+  #v-session{max-width:760px}
+  /* One block, full width. Columns were tried and they balance badly: three
+     sentences do not divide evenly, so the last two words end up alone at the
+     top of a second column beside a hole. A lead paragraph is read once, in
+     order — it does not need a newspaper measure, it needs to be one thing. */
+  .tagline{font-size:14px;line-height:1.6;max-width:none;text-wrap:balance;
+    color:var(--ink-soft);margin:-2px 0 2px}
+
+  /* More room means more columns, not wider boxes. */
+  .kpis{grid-template-columns:repeat(3,1fr)}
+  .decks{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .ins-two{gap:18px}
+  #v-setup,#v-settings,#v-browse,#v-words,#v-saved{gap:18px}
+}
+
+/* Past 1200px the dashboard can carry a fourth tile per row without any of
+   them becoming a stretched rectangle. */
+@media (min-width:1200px){
+  .kpis{grid-template-columns:repeat(3,1fr)}
+  .dash .panel{padding:16px 18px}
+}
+
+/* --- collapsible panels --- */
+.panel > h3[role="button"]{cursor:pointer;display:flex;align-items:center;gap:8px;
+  user-select:none;border-radius:7px}
+.panel > h3[role="button"]:hover{color:var(--acc)}
+.panel > h3[role="button"]:focus-visible{outline:2px solid var(--acc);outline-offset:3px}
+.panel > h3 .pfold{margin-left:8px;flex:none;color:var(--muted);
+  transition:transform .18s;transform-origin:50% 50%}
+/* .lbl already claims the free space, so the chevron sits hard right of it. */
+.panel > h3 .lbl + .pfold{margin-left:8px}
+.panel > h3:not(:has(.lbl)) .pfold{margin-left:auto}
+.panel.folded > h3 .pfold{transform:rotate(-90deg)}
+.panel.folded{padding-bottom:13px}
+.dash-h .foldall{margin-left:10px}
+
+/* The moved panels live in a wrapper inside the section, so the section's own
+   gap cannot reach them — the wrapper has to carry it or twelve panels stack
+   flush against one another. */
+#settings-body{display:flex;flex-direction:column;gap:14px}
+@media (min-width:900px){#settings-body{gap:18px}}
+
+/* A heading inside a panel, under the panel's own h3. Was written against
+   .cd-h, which vanished with the cloud dashboard and left these rendering as
+   plain browser h4s. */
+/* A jump from the rail lands on a panel that may be one of thirteen; a brief
+   ring says which one answered the click. */
+.flash{animation:flash 1.2s ease-out}
+@keyframes flash{from{box-shadow:0 0 0 3px var(--acc)}to{box-shadow:0 0 0 3px transparent}}
+.subhead{font-size:10px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--muted);font-weight:600;margin:18px 0 8px}
+
+/* --- profile --- */
+.prof-id{display:flex;gap:14px;align-items:flex-end}
+.prof-face{width:52px;height:52px;flex:none;border-radius:14px;background:var(--acc);
+  color:var(--on-acc);display:grid;place-items:center;
+  font-family:Fraunces,Georgia,serif;font-size:25px;font-weight:700;line-height:1;
+  box-shadow:var(--shadow)}
+@media (max-width:420px){.prof-id{gap:10px}.prof-face{width:44px;height:44px;font-size:21px}}
+#profile-panel .seg{margin-top:2px}
+
+/* ================================================================
+   THE RAIL CARD  —  who you are and what you are connected to
+   ================================================================
+   A column of seven tabs is a lot of empty rail below them. What belongs
+   there is the state you would otherwise open Settings to check: whose
+   record this is, what today looks like, and whether exports are actually
+   going anywhere. Rail only — on a phone this is vertical space the app
+   cannot spare, so it is not rendered there at all. */
+/* Rail only. This block sits after the wide layout in the file, so the
+   hide has to be bounded by its own query or it would win everywhere. */
+@media (max-width:899px){.railcard{display:none}}
+.rc-you,.rc-link{display:flex;width:100%;align-items:center;gap:10px;
+  padding:9px 10px;border-radius:10px;transition:background .15s}
+.rc-you:hover,.rc-link:hover{background:var(--surface-3)}
+.rc-face{width:34px;height:34px;flex:none;border-radius:10px;background:var(--acc);
+  color:var(--on-acc);display:grid;place-items:center;
+  font-family:Fraunces,Georgia,serif;font-size:17px;font-weight:700;line-height:1}
+.rc-id,.rc-t{display:flex;flex-direction:column;gap:1px;min-width:0}
+.rc-id b,.rc-t b{font-size:13px;font-weight:600;color:var(--ink);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rc-id small,.rc-t small{font-size:11px;color:var(--muted);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.rc-day{padding:2px 10px 4px;display:flex;flex-direction:column;gap:7px}
+.rc-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.rc-row b{font-family:Fraunces,Georgia,serif;font-size:20px;font-weight:600;color:var(--ink)}
+/* The bar only exists once there is a target to measure against; without one
+   it would be a progress bar for nothing. */
+.rc-bar{height:5px;border-radius:3px;background:var(--surface-3);overflow:hidden}
+.rc-bar i{display:block;height:100%;background:var(--acc);border-radius:3px;
+  transition:width .3s}
+.rc-facts{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--muted)}
+.rc-facts b{color:var(--ink-soft);font-weight:600}
+
+/* Green when it is connected and doing something, grey when it is not.
+   One glyph, no words needed to tell the two apart. */
+.rc-dot{width:8px;height:8px;flex:none;border-radius:50%;background:var(--muted);
+  box-shadow:0 0 0 3px var(--surface-2)}
+.rc-dot.on{background:var(--h2)}
+.rc-dot.warn{background:var(--h5)}
+.rc-sep{height:1px;background:var(--line);margin:3px 8px}
 

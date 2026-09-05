@@ -536,6 +536,14 @@ function renderStorage(){
    because it is the only one that cannot report where the file went. */
 async function saveFile(name, mime, text){
   try{
+    /* A chosen folder wins over everything. If it happens to sit inside a
+       Google Drive mount then writing the file here IS the sync — Drive for
+       Desktop picks it up with this app closed. */
+    if(window.FOLDER && FOLDER.ready()){
+      await FOLDER.write(name, text);
+      toast("Saved to " + FOLDER.name() + "/" + name);
+      return;
+    }
     const cap = window.Capacitor && window.Capacitor.Plugins;
     if(cap && cap.Filesystem){                                  // Android
       await cap.Filesystem.writeFile({
@@ -559,6 +567,21 @@ async function saveFile(name, mime, text){
 
 const stamp = () => new Date().toISOString().slice(0,10);
 
+/* The name every exported record gets, wherever it is going: a folder on this
+   machine, a Drive folder through the script, or the downloads folder. Stamped
+   to the second and local, so two exports on one day never collide and the
+   folder reads as a history in the order you made it.
+
+   One definition, used by dashboard.js and by drive.js — the two of them
+   disagreeing about what a record file is called is exactly the kind of thing
+   nobody notices until a file quietly overwrites another. */
+const stampFull = (d) => {
+  const t = d || new Date(), p2 = n => (n < 10 ? "0" : "") + n;
+  return t.getFullYear() + "-" + p2(t.getMonth() + 1) + "-" + p2(t.getDate()) + "-" +
+         p2(t.getHours()) + "-" + p2(t.getMinutes()) + "-" + p2(t.getSeconds());
+};
+const recordFileName = (d) => `4qian-record-${stampFull(d)}.csv`;
+
 /* CSV wants the category name and the raw row together; TRACK does not know
    about DATA, so it asks for a lookup. */
 function csvLookup(rank){
@@ -568,6 +591,21 @@ function csvLookup(rank){
   row.cat = DATA.categories[q[CA]];
   return row;
 }
+
+/* Decks travel by name, not by index: an index means nothing in a spreadsheet
+   and would silently point at the wrong deck if the deck list ever changed
+   order. core.js already owns deckName, including the ad-hoc case; this is
+   only the way back.
+
+   An unrecognised name becomes -1 rather than 0. That is the ad-hoc marker,
+   which is what "Your selection" was on the way out, and it is the honest
+   answer for a deck this build has never heard of — better than quietly
+   claiming everything came from the first deck in the list. */
+const deckIndex = nm => {
+  const k = String(nm || "").trim().toLowerCase();
+  if(!k) return -1;
+  return DATA.decks.findIndex(d => String(d.name).toLowerCase() === k);
+};
 
 /* ---------------- wiring ---------------- */
 function wireDashboard(){
@@ -614,18 +652,26 @@ function wireDashboard(){
     const b = e.target.closest(".lrow"); if(b && b.dataset.r) openQuestion(+b.dataset.r);
   });
 
-  $("#b-exp-json").addEventListener("click", () =>
-    saveFile(`4qian-${stamp()}.json`, "application/json", TRACK.toJSON(S)));
   $("#b-exp-csv").addEventListener("click", () => {
     if(!TRACK.events().length) return toast("Nothing to export yet");
-    saveFile(`4qian-record-${stamp()}.csv`, "text/csv", TRACK.toCSV(csvLookup));
+    /* charset=utf-8 alongside the byte-order mark the file itself carries:
+       the header is what a browser download honours, the mark is what a
+       spreadsheet reads. Neither one covers both. */
+    saveFile(recordFileName(), "text/csv;charset=utf-8",
+             TRACK.toCSV(csvLookup, deckName));
   });
   $("#b-imp").addEventListener("click", () => $("#imp-file").click());
   $("#imp-file").addEventListener("change", async e => {
     const f = e.target.files && e.target.files[0]; if(!f) return;
     try{
-      const got = TRACK.importJSON(await f.text());
-      toast(`Merged · ${nf(got.events)} entries, ${nf(got.sessions)} sessions`);
+      const text = await f.text();
+      /* Sniffed rather than taken from the extension, so a CSV saved as .txt
+         still works and an old JSON backup is never stranded. */
+      const got = text.trimStart().startsWith("{")
+        ? TRACK.importJSON(text)
+        : TRACK.importCSV(text, deckIndex);
+      const extra = got.skipped ? `, ${nf(got.skipped)} rows skipped` : "";
+      toast(`Merged · ${nf(got.events)} entries, ${nf(got.sessions)} sessions${extra}`);
       renderDash();
     }catch(err){ toast(err.message || "That file could not be read"); }
     e.target.value = "";
@@ -639,7 +685,11 @@ function wireDashboard(){
     c.returnValue = "";
     c.onclose = () => {
       if(c.returnValue !== "yes") return;
-      TRACK.wipe(); renderDash(); toast("Record erased");
+      TRACK.wipe();
+      /* Forget which Drive snapshots have been folded in, or the next sync
+         would decline to bring back the very files that would restore this. */
+      if(window.DRIVE) DRIVE.forgetImported();
+      renderDash(); toast("Record erased");
     };
     c.showModal();
   });
