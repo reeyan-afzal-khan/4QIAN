@@ -59,7 +59,7 @@ const $ = s => document.querySelector(s);
 const LS = "4qian.v1";
 const LS_OLD = "cdg.v3";          // pre-rename key; read once, then retired
 let S = {
-  deck:0, depth:1, sensOK:3, mode:"both", pinyin:true, frame:true, turns:true,
+  deck:0, depth:1, sensOK:3, mode:"both", pinyin:true, frame:true,
   score:true, track:true,
   muted:[], seen:[], saved:[], asked:0, topics:[], deepest:1, skin:"hazard",
   cur:null, revealed:false, running:false, turn:0, view:"setup",
@@ -74,7 +74,7 @@ let S = {
   /* The app is a sidecar to a chat window, one stranger at a time, so the
      live conversation is a person rather than a mode. `partner` is who you
      are talking to right now; the record keeps a list of everyone. */
-  partner:"", learning:"zh", copyAs:"both"
+  partner:"", learning:"zh"
 };
 try{
   const raw = localStorage.getItem(LS) || localStorage.getItem(LS_OLD);
@@ -221,7 +221,7 @@ function show(v){
     SPEAK.stop(); stopRunClock();
   }
   S.view = v;
-  for(const n of ["setup","session","dash","insights","settings","browse","words","write","saved"])
+  for(const n of ["setup","session","dash","insights","settings","browse","saved"])
     $("#v-"+n).classList.toggle("hidden", n!==v);
   /* No inline display here. `.hidden` is display:none!important, so it wins
      while a view is hidden, and when it is not the stylesheet decides — which
@@ -231,13 +231,11 @@ function show(v){
   /* The rail card counts today's questions, so it is stale the moment a run
      ends. A view change is the cheapest honest moment to repaint it. */
   if(window.renderRail) renderRail();
-  if(v==="write")  renderWrite();
   if(v==="browse") runSearch();
   if(v==="saved")  renderSaved();
   if(v==="dash")   renderDash();
   if(v==="insights") renderInsights();
   if(v==="settings") renderProfile();
-  if(v==="words")  renderVocab();
   if(v==="setup"){ renderQOTD(); renderPeople(); }  // both cheap, both go stale
   scrollTo(0,0);
   save();
@@ -346,19 +344,6 @@ function renderTopics(){
    whoever you are talking to right now, which changes conversation to
    conversation, so it reads off the partner box rather than off a second name
    field nobody would keep up to date. */
-/* Your own name if the profile carries one — a turn bar that says "Reeyan"
-   reads as a conversation, and "You" reads as a form. */
-const playerName = i => i ? ((S.partner || "").trim() || "Them")
-                          : (((S.profile || {}).name || "").trim() || "You");
-
-function renderTurn(){
-  $("#turnbar").classList.toggle("hidden", !S.turns);
-  $("#turn-a").textContent = playerName(0);
-  $("#turn-b").textContent = playerName(1);
-  $("#turn-a").setAttribute("aria-pressed", S.turn === 0);
-  $("#turn-b").setAttribute("aria-pressed", S.turn === 1);
-}
-
 /* ---------------- session ---------------- */
 let cardShownAt = 0;
 
@@ -417,7 +402,6 @@ function renderCard(){
   $("#reveal").textContent = zhFirst ? "Show the English" : "Show the 中文";
   renderPartner();
 
-  renderTurn();
   $("#s-asked").textContent = S.asked;
   $("#s-depth").textContent = S.depth;
   $("#s-left").textContent  = pool(S.depth,true).length;
@@ -439,7 +423,6 @@ function next(how){
     TRACK.record(S.cur[R], how|0, S.depth, S.deck, Date.now() - cardShownAt, PID);
     markSeen(S.cur[R]); S.asked++;
     if(!S.topics.includes(S.cur[CA])) S.topics.push(S.cur[CA]);
-    if(S.turns) S.turn ^= 1;
     HIST.push({q: S.cur, depth: S.depth});
     if(HIST.length > HIST_CAP) HIST.shift();
   }
@@ -519,7 +502,7 @@ function start(i, jumpTo){
   const deckMax = Math.max(...d.ids.map(x=>DATA.q[x][SE]));
   const open = () => {
     S.deck=i; S.depth=lo; S.asked=0; S.topics=[]; S.deepest=lo;
-    S.cur=null; S.running=true; S.turn=0;
+    S.cur=null; S.running=true;
     HIST = []; recentCat = []; recentFrame = []; startRunClock();
     TRACK.sessionStart(i, PID);
     show("session");
@@ -672,7 +655,7 @@ function openQuestion(rank){
   S.deck = di;
   S.depth = Math.min(st[st.length-1], Math.max(st[0], q[ST]));
   S.sensOK = Math.max(3, q[SE]);
-  S.asked = 0; S.topics = []; S.deepest = S.depth; S.turn = 0;
+  S.asked = 0; S.topics = []; S.deepest = S.depth;
   S.cur = q; S.revealed = false; S.running = true; cardShownAt = Date.now();
   HIST = []; recentCat = []; recentFrame = []; startRunClock();
   TRACK.sessionStart(di, PID);
@@ -1043,45 +1026,6 @@ function answerHTML(){
   }).join("") + `</div>`;
 }
 
-/* ---------------- the Words view ---------------- */
-let vocLevel = new Set(), vocStatus = "all", vocTerm = "", vocShown = 60;
-
-function renderVocFilters(){
-  $("#voc-lv").insertAdjacentHTML("beforeend", VOCAB.levels.map((nm, i) =>
-    `<button class="fchip" data-l="${i+1}" aria-pressed="false">${esc(nm)}</button>`).join(""));
-}
-
-function renderVocab(){
-  const met = VOCAB.metWords();
-  const term = vocTerm.trim().toLowerCase();
-  const termBare = strip(term);
-
-  const rows = VOCAB.all.filter(([hz, py, en, lv]) => {
-    if(vocLevel.size && !vocLevel.has(lv)) return false;
-    if(vocStatus === "met" && !met.has(hz)) return false;
-    if(vocStatus === "new" && met.has(hz)) return false;
-    if(term && !(hz.includes(term) || strip(py).includes(termBare)
-                 || en.toLowerCase().includes(term))) return false;
-    return true;
-  });
-
-  $("#voc-count").textContent = `${nf(rows.length)} word${rows.length === 1 ? "" : "s"}`
-    + (vocShown < rows.length ? ` · showing ${vocShown}` : "");
-  $("#voc-list").innerHTML = rows.length
-    ? rows.slice(0, vocShown).map(([hz, py, en, lv]) =>
-        wordRow({hz, py, en, lv}, met, true)).join("")
-    : `<div class="empty">Nothing matches that.<br>Try the Chinese, the pinyin without tones, or the English.</div>`;
-  $("#voc-more").classList.toggle("hidden", rows.length <= vocShown);
-  $("#voc-more").textContent = `Show 60 more · ${nf(Math.max(0, rows.length - vocShown))} left`;
-
-  const tot = [0,0,0,0], got = [0,0,0,0];
-  for(const [hz,,,lv] of VOCAB.all){ tot[lv-1]++; if(met.has(hz)) got[lv-1]++; }
-  $("#voc-levels").innerHTML = VOCAB.levels.map((nm, i) =>
-    brow(nm, `${nf(got[i])} / ${nf(tot[i])} · ${pct(got[i], tot[i])}%`,
-         tot[i] ? got[i]/tot[i] : 0, hc(Math.min(5, i + 2)))).join("");
-  $("#voc-sum").textContent = `${nf(got.reduce((a,b)=>a+b,0))} of ${nf(VOCAB.size)} met`;
-}
-
 /* Tapping a word shows where it turns up, which is the whole reason the
    bank was built from this corpus rather than from a dictionary. */
 const hiliteWord = (zh, hz) => esc(zh).split(esc(hz)).join(`<mark>${esc(hz)}</mark>`);
@@ -1116,35 +1060,14 @@ window.showWord = showWord;
 /* ================================================================
    PASTE-READY TEXT
 
-   The app is used next to a chat window, so the single most-used
-   control is "give me this question in a form I can paste". What that
-   form is depends on who you are talking to: a native Chinese speaker
-   does not want pinyin under their own language, and somebody learning
-   English wants the English on its own line to copy the shape of.
-
-   Four formats, one of which is the default for the copy button and
-   all four of which are one tap away under the card.
+   The app is used next to a chat window, so the single most-used control is
+   "give me this question in a form I can paste". There used to be four forms
+   and a panel to choose between them, which is a decision made once and then
+   never again — and in a language exchange the answer is always the same:
+   the Chinese for them to read, the English so you know what you sent.
    ================================================================ */
-const COPY_AS = {
-  zh:   {nm: "中文",     of: q => q[ZH] },
-  en:   {nm: "English",  of: q => q[EN] },
-  both: {nm: "Both",     of: q => q[ZH] + "\n" + q[EN] },
-  all:  {nm: "+ pinyin", of: q => q[ZH] + "\n" + q[PY] + "\n" + q[EN] }
-};
-
-function copyText(q, how){
-  const f = COPY_AS[how] || COPY_AS.both;
-  return f.of(q);
-}
-
-
-/* The settings panel shows the format rather than describing it, because
-   three lines of sample is shorter than a sentence explaining them. */
-function renderCopyPreview(){
-  const q = byRank.get(1) || DATA.q[0];
-  $("#copy-preview").textContent = copyText(q, S.copyAs);
-  [...$("#copyas").children].forEach(b =>
-    b.setAttribute("aria-pressed", b.dataset.c === S.copyAs));
+function copyText(q){
+  return q[ZH] + "\n" + q[EN];
 }
 
 /* ---------------- who you are talking to ---------------- */
@@ -1170,7 +1093,6 @@ function renderPartner(){
   const who = S.partner;
   $("#goal-who").textContent = who ? "with " + who : "";
   $("#goal-who").classList.toggle("hidden", !who);
-  renderTurn();
 }
 
 /* ---------------- which language you are practising ----------------
@@ -1221,10 +1143,10 @@ const TOUR = (function(){
       + "it has already given you for THEM — so you never repeat a question to the same "
       + "person, and your best openers come back fresh for the next stranger.",
      scroll:true},
-    {t:"#nav", h:"Four other places to look",
-     p:"Dashboard is your record of everything you have been through. Browse searches all 4,228 "
-      + "questions. Words is the Chinese vocabulary, which fills up on its own as you talk. "
-      + "Saved is anything you bookmarked."},
+    {t:"#nav", h:"The other places to look",
+     p:"Dashboard is your record of everything you have been through, and Insights is the same "
+      + "record as charts you can filter. Browse searches all 4,228 questions. Saved is "
+      + "anything you bookmarked. Settings holds the theme, your profile and where exports go."},
     {h:"That's the whole idea",
      p:"Start a deck whenever you are ready — the rest of the tour picks up on your first card. "
       + "You can run this again any time from the ? button at the top."}

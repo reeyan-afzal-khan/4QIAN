@@ -37,7 +37,7 @@ icons and splash.
 
 ```
 app/                the whole application — this is the only thing you edit
-  index.html        markup for all nine views, six dialogs and the tour overlay
+  index.html        markup for all seven views, six dialogs and the tour overlay
   styles.css        one committed dark design plus eleven alternate skins
   questions.js      the deck: 4,228 rows + decks, categories, frames (1 MB, generated)
   vocab.js          the word bank: 1,081 hand-glossed words, also the segmenter's dictionary
@@ -46,11 +46,6 @@ app/                the whole application — this is the only thing you edit
   core.js           setup, themes, speech, the session loop, vocabulary, the tour, browse, saved
   dashboard.js      aggregation, charts, the record log, CSV export and import
   insights.js       the filterable chart view: trend, donut, bars, heat grid, table
-  write.js          the handwriting pad: stroke decoder, animation, stroke matching
-  strokes.js        stroke data for 2,303 characters, loaded only by the Write tab
-  strokes-tw.js     955 traditional forms, loaded only if you switch script
-  defs.js           a reading and a gloss for all 3,258 of them (CC-CEDICT)
-  ARPHICPL.TXT      the licence that stroke data ships under
   folder.js         writes exports into a folder you pick; inside a Drive mount that IS the sync
   drive.js          optional: posts a CSV to a Drive folder through a small Apps Script
   boot.js           event wiring, keyboard map and start-up
@@ -210,18 +205,9 @@ without making the deck any less random.
 
 ### Send it, don't read it out
 
-The other person cannot see your screen, so the most-used control is "give me this in a
-form I can paste". Under every card:
-
-| | what lands on the clipboard |
-| --- | --- |
-| **中文** | the Chinese alone — for a native speaker, who does not want pinyin under their own language |
-| **English** | the English alone |
-| **Both** | Chinese then English |
-| **+ pinyin** | Chinese, pinyin, English — the version for you |
-
-The copy button on the card itself uses whichever of those you set as your default, so the
-one-tap path and the four-button path agree.
+The other person cannot see your screen, so the most-used control is "give me this in a form
+I can paste". The copy button on the card, or `C`, puts **the Chinese then the English** on
+your clipboard: the Chinese for them to read, the English so you know what you just sent.
 
 ### Which language *you* are practising
 
@@ -249,18 +235,6 @@ the closer the match the better. Ten other palettes are unchanged.
 ## Making it explain itself
 
 Most of what was confusing about this app was not the ideas — it was the labels.
-
-### Whose turn it is
-
-There used to be a single line reading **You answer first**, which failed twice over. It
-looked like a status line rather than a control, so nobody pressed it. And with two people
-sharing one screen, *you* does not identify anybody — both readers are "you".
-
-It is now a two-option control with the two players' names on it, under the question
-**Whose turn to answer?** You can type the names in on the Decks screen; leave them blank
-and it says You and Them. Tapping a name selects that person rather than blindly flipping,
-which is what a control showing two names should do. The automatic swap-every-question
-behaviour is unchanged and now lives next to the names, described as what it is.
 
 ### The rest of the jargon
 
@@ -294,7 +268,7 @@ once on a first run.
 The split is deliberate. A single tour would have to drive the app into a session on the
 user's behalf and then unwind it. Instead the first half explains the idea while you are
 looking at the decks, and the second half fires on the first card of your first run, when
-every element it points at is genuinely on screen. It covers the card, whose turn it is,
+every element it points at is genuinely on screen. It covers the card,
 the study panel, the deeper/lighter decision and the level gauge.
 
 The spotlight is a ring with a very large spread shadow rather than a `clip-path` cut-out —
@@ -320,8 +294,7 @@ falls back to bare characters rather than to a confident wrong gloss.
 
 - **Under every card** — the question split into words, with pinyin and gloss, and a
   marker for the ones you have already met.
-- **The Words tab** — the whole bank, searchable in Chinese, pinyin or English, filterable
-  by level and by whether you have met it, with per-level progress.
+- **The Dashboard** — how much of the bank you have met, broken down by level.
 - **Tap any word** to see the questions it actually appears in, with the word highlighted.
   This is the payoff for building the bank from the corpus instead of importing one.
 
@@ -648,227 +621,54 @@ for localhost.
 
 ---
 
-## Write — handwriting practice
+## Words and Write, removed
 
-The eighth tab, and the first one that asks you to produce Chinese rather than
-recognise it. Two things happen on one square pad. The app can draw a character stroke by
-stroke so you can watch the order; or you draw it yourself, and each stroke is checked
-before it is accepted. The second is the point — copying a character you can see teaches
-you its shape, but being made to produce the next stroke from memory, in order, is what
-teaches you to write.
+Both tabs are gone, and with them the entire handwriting stack: `write.js`, the three
+generated data files, the Arphic licence text, and the two build scripts and two checked-in
+data inputs that produced them. That is about **3.7 MB** off the app, which drops from 5.7 MB
+to 2.0 MB, and it takes the CC-CEDICT and Arphic attributions out of the About panel with
+it, since nothing they covered ships any more.
 
-It is wired to the rest of the app rather than bolted beside it: the word dialog in
-**Words** grew a *Practise writing* button that hands a word straight to the pad, and a
-pasted character is treated as an instruction rather than a search term.
+The nav is six tabs: three-up in two rows on a phone, one row of six from 560px, six in the
+rail above 900px. The shortcut map is <kbd>1</kbd>–<kbd>6</kbd>.
 
-### Where the strokes come from
+**The vocabulary itself stayed, deliberately.** The word bank is not a feature of the Words
+tab; it is the segmenter the session card runs on, and three things that have nothing to do
+with a browsing view depend on it:
 
-The stroke data holds, for every character it covers, the outline of each stroke and its
-**median** — the centre line a brush travels. Both are needed and they do different jobs:
-the outline is what a character actually looks like, the median is what you are being asked
-to draw.
+- the **study panel** under every question — the sentence split into words with pinyin and
+  gloss, which is a session feature that happened to share the tab's data
+- the **word dialog** — tap any word to see the questions it actually appears in
+- the **Dashboard's vocabulary panel** — how much of the bank you have met, by level
 
-The source is the **Make Me a Hanzi** dataset by way of `hanzi-writer-data`. That data is
-under the **Arphic Public License**, which is copyleft, so the notice travels with it:
-`app/ARPHICPL.TXT` ships alongside and the About panel carries the credit. Do not ship one
-without the other. `scripts/build-strokes.mjs` regenerates the file and documents where to
-get the source.
+What went with the tab is what only the tab had: its search box, the level and met/not-met
+filters, the paged list, and the two renderers behind them. `wordRow`, `showWord` and
+`VOCAB` are shared, so they stayed where they were.
 
-### The encoding, and why there is one
-
-Raw, the 3,258 characters that ship are **9.54 MB** of JSON. Nearly all of it is
-coordinates: 1,618,388 integers written in decimal, three or four bytes each plus a
-separator, when consecutive points are usually a few dozen units apart.
-Delta-encoding each against a running cursor and writing the delta as a base-64 varint —
-five payload bits per character, top bit continues, zigzagged so a small negative costs
-what a small positive does — brings it to **3.51 MB** across the two files, a 63% saving.
-
-This is a **re-encoding, not a quantisation**. The build asserts it: every one of the
-1,618,388 coordinates is decoded and compared against the source before a byte is written,
-and a single mismatch fails the build. The decoder is twenty lines at the top of
-`app/write.js`.
-
-The y axis is flipped on the way in. The source is y-up and expects the reader to apply
-`scale(1,-1) translate(0,-900)`; baking `y = 900 - y` at build time means the app draws
-into a plain `0 0 1024 1024` viewBox and no part of the renderer has to remember which way
-up the data is.
-
-At 2.2 MB the main file is the largest thing in the app, so it is **not loaded at launch** —
-it is fetched the first time the tab is opened, and never at all for someone who does not
-go there. It
-loads by injecting a `<script>` tag, the same mechanism as the eleven tags already in
-`index.html`, because `fetch` is blocked under `file://` and this app has to keep running
-from a folder. The service worker leaves it out of the install precache for the same
-reason and picks it up the first time it is actually asked for.
-
-### Drawing a stroke
-
-A stroke is animated the way a brush works, not the way an SVG does: the outline becomes a
-`clipPath` and a very thick line is swept along the median inside it, by animating
-`stroke-dashoffset` from the path's full length to zero. The visible edge is therefore the
-character's real contour — tapering, hooks and all — rather than a rounded line pretending
-to be one. Longer strokes take proportionally longer, within limits, because a uniform
-duration makes a dot look laboured and a sweeping 捺 look hurried.
-
-The animation carries a **timer as a floor**. `requestAnimationFrame` stops firing on a
-backgrounded page, and this promise gates the flag that gates the pad — without the floor,
-switching away mid-stroke and coming back leaves the pad permanently dead. Whichever of the
-two finishes first wins and the other becomes a no-op.
-
-### Checking a stroke
-
-Thresholds live in the 1024 box, so they do not move when the pad is resized. They are
-deliberately forgiving about shape and strict about the two things stroke-order practice is
-actually for: **where a stroke starts, and which way it travels**. Writing 一 right to left
-is wrong even though the line it leaves is identical. Dots are exempted from direction and
-length — asking either of a stroke forty units long would make 冫 unwinnable — and judged
-on position alone.
-
-Absolute thresholds are not enough on their own, and measuring across 3,589 strokes showed
-exactly how much:
-
-| Drawn stroke | Absolute test only | With the rival check |
-| --- | --- | --- |
-| the median itself | 100% accepted | 100% accepted |
-| median + ±80 jitter | 99.9% accepted | 99.9% accepted |
-| median + ±160 jitter | 96.3% accepted | 96.5% accepted |
-| the same stroke backwards | 97.3% rejected | **100% rejected** |
-| a *different* stroke of the same character | 81.4% rejected | **100% rejected** |
-
-A character repeats shapes constantly — the three horizontals of 三, the verticals of 川 —
-and a threshold loose enough for real handwriting is loose enough to accept the neighbour.
-Tightening it would have cost the sloppy-but-correct strokes that matter more. So the
-stroke you were asked for must also be **the best fit of any stroke in the character**: if
-another scores clearly better, that is the one you drew, and it is refused. Scoring the
-median against *itself reversed* by the same rule closes the last gap — a hooked stroke
-that doubles back, like the sweep in 之, starts and ends close enough together to slip past
-a direction check, but it never beats its own reversal.
-
-That one change took wrong-stroke rejection from 81.4% to 100% at no cost to legitimate
-strokes, and it is what makes the **order** matter here rather than merely the shape.
-
-### What you can write, and in which script
-
-Two sets ship, in two files, because most people will only ever want the first and it is
-already the largest thing in the app.
-
-| File | Holds | Loaded |
-| --- | --- | --- |
-| `app/strokes.js` | **2,303** characters: every one in the deck, plus the 2,000 most frequent | first visit to the tab |
-| `app/strokes-tw.js` | **955** traditional forms and the 916-entry variant map | only if you switch to traditional |
-
-The frequency list is HanziCraft's, checked in as `scripts/frequency-2000.txt` rather than
-fetched at build time — the page is behind a bot check, the ordering decides what ships, and
-a build that silently changes because a website did is not a build. It adds 409 characters
-the deck itself never uses, and it doubles as a **source** in the picker: *Most common* lists
-them in frequency order with their rank, so `的` is #1.
-
-**Traditional** is a per-character conversion, not a second app. The map comes from OpenCC's
-`STCharacters`, and the pad shows 說 while the gloss still reads *shuō · to say* with
-*traditional of 说* beside it — otherwise a traditional character next to a simplified
-character's gloss looks like a bug. Search converts too: type *speak* in traditional mode and
-the rows come back 說 · 講 · 說實話.
-
-Two honest limits. A simplified character can stand for **two** traditional ones — 发 is both
-發 and 髮 — and the pad takes the first; both are in the map, so offering the choice later is
-a UI change, not a data one. And **43 variant mappings were dropped at build time** because
-the traditional form has no stroke data (喫 for 吃, 麪 for 面). A pad that offers a character
-and then cannot draw it is worse than one that never offered it.
-
-### Meanings, and why the word bank could not supply them
-
-The word bank is 1,081 **words**, so it has almost nothing to say about single characters.
-The frequency list first shipped showing `机` #111 and `民` #113 with no meaning at all,
-which makes a list of two thousand characters something to look at rather than something to
-learn from.
-
-`app/defs.js` — 185 KB, built by `scripts/build-defs.mjs` — carries a reading and a short
-gloss for **all 3,258** characters the tab can show, from **CC-CEDICT** under CC BY-SA 4.0.
-That is a second, different licence from the stroke data's: attribution *and* share-alike,
-credited in the About panel beside the Arphic one. Both have to travel with the app.
-
-It loads alongside the stroke data rather than after it. A character with no gloss yet is
-still perfectly writable, so the pad never waits on the dictionary.
-
-Where a character has **two readings with different meanings**, both are kept and both are
-shown — 长 is *zhǎng* "chief, head" and *cháng* "long", and a single line claiming one of
-them would be wrong about the other.
-
-Two decisions in the build are worth recording, because the first version got both wrong:
-
-- **Parentheses are not stripped.** An early pass removed them as editorial asides, which
-  turned 第 — whose CC-CEDICT sense is literally *"(prefix indicating ordinal number)"* —
-  into a note about imperial examinations, because deleting the bracket deleted the
-  definition.
-- **Readings are ordered by sense count, not by dictionary order.** CC-CEDICT lists entries
-  alphabetically by headword, so its order says nothing about which reading you will meet.
-  Taking the first gave 說 as *shuì* "to persuade" and dropped *xíng* from 行 altogether.
-  The reading a character usually has is the one the dictionary has most to say about, which
-  is a proxy rather than a fact — 了 comes out *liǎo* before *le* — but both readings ship,
-  so the reader still sees the whole picture.
-
-### Reading two thousand characters, a hundred at a time
-
-The frequency list used to render its first 120 and stop, which was a placeholder, not a
-design. It now has a **Rank** control — 1–100, 101–500, 501–1000, 1001–1500, 1501–2000 —
-covering all two thousand exactly. A range is how anyone actually works through a frequency
-list; all two thousand rows at once is both slow to lay out and useless to read.
-
-Search lost its cap at the same time, returning up to 200 matches rather than 40. Each row
-carries its rank, the character, its meaning, its reading, and a tick if you have written
-it.
-
-Those five ranges do not fit one segmented row in a 300px panel — the last one overflowed
-its own container — so the control uses the wrapping filter chips the Browse and Words tabs
-already use, rather than inventing a third idiom for the same job.
-
-### One list, worked through
-
-The tab used to offer two sources — the words you had met, and the frequency list — which
-made the first thing you saw a choice about what kind of practice this was. It is a
-character pad; the answer is the frequency list, and the picker now says so in its heading
-rather than in a control.
-
-What went in instead is the thing that makes a list of two thousand usable: **← Prev and
-Next →** under the pad, with your position in the list beside them. Write #1, Next, write
-#2. The band underneath follows you, so stepping from #100 to #101 moves the Rank chips
-along on their own rather than leaving the list showing a range you have left.
-
-Search follows from the same decision. It used to search the word bank, which meant looking
-up *water* returned nothing, because the bank holds words and has no entry for 水 on its
-own. It now searches **the characters** — by meaning, by reading with or without tone marks,
-or by pasting the character — and returns them in frequency order, so the common answer is
-the first one.
-
-### The pad, read at a glance
-
-The character is the heading now: set large on the left with its rank, readings and meanings
-beside it, so the panel reads as one thing about one character rather than a titled box
-containing some. It is no longer collapsible — you do not fold away the thing you are using.
-
-Progress is **one pip per stroke**, filling as they land. *2 of 4 strokes* says the same
-thing, but it has to be read; the pips are legible out of the corner of an eye that is on
-the pad, which is where your eye actually is.
-
-Two small alignment bugs went with it. The action row's primary button carries no border and
-its own `.sm` padding, both of which outrank a plain `.wr-acts button` rule — so it sat two
-pixels taller than the four ghosts beside it. The box is now set at matching specificity,
-with a transparent border standing in for the ghosts' visible one. Shorter labels came at
-the same time: the row is one line at 1,440px where it was two, and two on a phone where it
-was three.
-
+Say the word if you want the rest of the vocabulary gone too — that is a bigger cut, because
+it takes the word breakdown out of the session card and a panel off the Dashboard, which is
+why it was not assumed here.
 ---
 
-## Send it, removed
+## Chrome removed from a run
 
-The session used to carry a four-button **Send it** panel above the card: Chinese, English,
-both, both with pinyin, one tap each onto the clipboard. It was a row of permanent chrome
-for a choice almost nobody makes twice — you decide once what you paste into a chat, and
-then you paste that.
+Three controls went, in order, for the same reason: each was permanent furniture around a
+decision that is made once, or never.
 
-The setting survives, in Settings, where a once-and-done choice belongs; the copy button on
-the card and the `c` shortcut use it. What went is the panel, and with it a tour step and
-about 90px above every question.
+**Send it** was four buttons above the card — Chinese, English, both, both with pinyin —
+one tap each onto the clipboard. **Paste into your chat**, in Decks, was the same four
+choices again as a default for the card's own copy button, with a live preview. Between
+them they spent a panel and a row on a question you answer on your first day and then never
+revisit. Both are gone and the format is fixed: **Chinese, then English**. The copy button
+and `C` still work; there is simply nothing to configure.
+
+**Whose turn to answer** went with them. It was built for two people sharing one screen,
+which is not how this app is used — the questions are asked by whoever is holding it, every
+time. Gone with it: the turn bar, the *Swap who answers each turn* toggle in Decks, the `T`
+shortcut, and the `turn`/`turns` state the session carried through every card.
+
+Decks is down to three panels, the run's sidebar to two, and there is one fewer thing to
+read before the question.
 
 ---
 
@@ -876,7 +676,8 @@ about 90px above every question.
 
 Stacked, a run read: goal bar, five-rung gauge, whose turn, send it — and only then the
 question. About 390px of chrome above the thing you came for, while two thirds of a wide
-window sat empty beside it.
+window sat empty beside it. Two of those four have since gone entirely; the layout below is
+what fixed the rest.
 
 At 1100px it is now two columns. The left is **what you are doing**: the question, the study
 panel, the controls. The right is **how the run is set up**, in a 300px sticky column that
@@ -942,19 +743,6 @@ stylesheet already gives every view its display. It is gone.
 
 That is the third time in this app an inline style has quietly beaten a rule that looked
 right — the `<section>` layouts were the first, the panel gaps the second.
-
-### The pad
-
-米字格 guides, the strokes you have finished in ink, and the ones you still owe faintly
-behind them — a guide you have already traced is clutter behind your own writing, so it is
-drawn only for the remainder, and **Guide** turns it off entirely once you know the
-character. Two misses raise the median of the stroke you owe with its starting point
-marked; *Show this stroke* animates it on demand. A miss is a shake rather than a sentence.
-
-The pad is square at every width, because a character written in a rectangle is a character
-written wrong. It splits into pad-and-picker at 1150px rather than at the usual 900 — with
-the rail taking 236px, splitting at 900 left the pad 266px across, narrower than it is on a
-phone, which is the wrong way round.
 
 ---
 
@@ -1371,8 +1159,7 @@ If you change the icons or app colours, re-run `node scripts/android-brand.mjs`.
 
 `?` opens the full list in the app; **Decks → Show me how it works** runs the tour. In a session: `←` `→` change depth, `space`
 deals the next card at the same depth, `X` skips, `S` saves, `P` reads it aloud,
-`C` copies, `R` reveals the other language, `T` swaps who answers first, `B` steps
-back. Anywhere: `1`–`5` jump between the five views, `/` focuses the search, `esc`
+`C` copies, `R` reveals the other language, `B` steps back. Anywhere: `1`–`6` jump between the six tabs, `/` focuses the search, `esc`
 returns to Decks.
 
 ---

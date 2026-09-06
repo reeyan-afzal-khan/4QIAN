@@ -17,11 +17,7 @@ const CACHE = "4qian-__BUILD__";
 const SHELL = "./index.html";
 const CODE  = ["./index.html", "./styles.css", "./questions.js", "./vocab.js",
                "./answers.js", "./track.js", "./core.js", "./dashboard.js", "./insights.js", "./folder.js", "./drive.js",
-               "./boot.js", "./write.js", "./native.js"];
-/* The stroke data is megabytes and only the Write tab needs it, so it is not
-   precached on install — it joins the cache the first time it is asked
-   for, and is stale-while-revalidate from then on like the rest. */
-const LAZY = ["./strokes.js", "./strokes-tw.js", "./defs.js"];
+               "./boot.js", "./native.js"];
 const ASSETS = CODE.concat(["./manifest.webmanifest", "./icon-192.png",
                             "./icon-512.png", "./icon-maskable.png"]);
 
@@ -42,7 +38,7 @@ self.addEventListener("activate", e => {
 function isCode(url){
   if(url.origin !== self.location.origin) return false;
   const base = url.pathname.split("/").pop() || "index.html";
-  return CODE.concat(LAZY).some(c => c.slice(2) === base) || base === "";
+  return CODE.some(c => c.slice(2) === base) || base === "";
 }
 
 function put(req, res){

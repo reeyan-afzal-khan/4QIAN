@@ -78,9 +78,7 @@ addEventListener("unhandledrejection", function(e){
       <button data-v="dash" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>Dashboard</span></button>
       <button data-v="insights" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18"/><path d="M4 15l5-6 4 4 6-7"/></svg><span>Insights</span></button>
       <button data-v="browse" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg><span>Browse</span></button>
-      <button data-v="words" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 5.5v15"/><path d="M9 8h6"/></svg><span>Words</span></button>
-      <button data-v="write" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M14.5 6.5l3 3"/><path d="M4 20l1-3"/></svg><span>Write</span></button>
-    <button data-v="saved" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4.5L6 21z"/></svg><span>Saved</span></button>
+        <button data-v="saved" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4.5L6 21z"/></svg><span>Saved</span></button>
       <button data-v="settings" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.9 19.3a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.7 8.9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15.1 4.7a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9a1.7 1.7 0 0 0 1.56 1.03H21a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15z"/></svg><span>Settings</span></button>
     </nav>
     <div class="railcard" id="railcard">
@@ -142,24 +140,6 @@ addEventListener("unhandledrejection", function(e){
       <input class="search" id="partner" type="text" maxlength="24"
              placeholder="Their name or handle — e.g. Lin, or @linlin" autocomplete="off">
       <div class="people" id="recent-people"></div>
-      <div class="row" style="margin-top:10px">
-        <div><b>Swap who answers each turn</b><p>In a language exchange you usually both answer.
-          This reminds you whose turn it is.</p></div>
-        <button class="sw" id="sw-tn" aria-pressed="true" aria-label="Swap turns automatically"></button>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h3>Paste into your chat <span class="lbl" style="font-weight:500">tap a card's copy button</span></h3>
-      <p class="pmeta">What the copy button puts on your clipboard, ready to paste into
-        HelloTalk, Discord or wherever you are talking.</p>
-      <div class="seg" id="copyas">
-        <button data-c="zh" aria-pressed="false">中文</button>
-        <button data-c="en" aria-pressed="false">English</button>
-        <button data-c="both" aria-pressed="true">Both</button>
-        <button data-c="all" aria-pressed="false">+ pinyin</button>
-      </div>
-      <pre class="copy-preview" id="copy-preview"></pre>
     </div>
 
     <div class="panel">
@@ -315,14 +295,6 @@ addEventListener("unhandledrejection", function(e){
           <span class="lbl" id="deck-rule"></span>
         </div>
         <div class="rungs" id="rungs"></div>
-      </div>
-
-      <div class="turnbar" id="turnbar">
-        <span class="lbl">Whose turn to answer?</span>
-        <div class="seg turn-seg" id="turn">
-          <button data-t="0" aria-pressed="true" id="turn-a">You</button>
-          <button data-t="1" aria-pressed="false" id="turn-b">Them</button>
-        </div>
       </div>
 
     </div>
@@ -720,105 +692,7 @@ addEventListener("unhandledrejection", function(e){
     <div class="hits" id="hits"></div>
   </section>
 
-  <!-- ============ WORDS ============ -->
-  <section id="v-words" class="hidden">
-    <div class="panel">
-      <h3>Your vocabulary <span class="lbl" style="font-weight:500" id="voc-sum"></span></h3>
-      <p class="pmeta">Every word here occurs in the deck. A word counts as met once you have
-        been through a question that uses it, so this fills up on its own as you talk.</p>
-      <div class="blist" id="voc-levels"></div>
-    </div>
 
-    <input class="search" id="voc-q" type="search" placeholder="Search 中文, pinyin, or English…" autocomplete="off">
-    <div class="filters" id="voc-lv"><span class="lbl">Level</span></div>
-    <div class="filters" id="voc-st">
-      <span class="lbl">Status</span>
-      <button class="fchip" data-w="all" aria-pressed="true">All</button>
-      <button class="fchip" data-w="met" aria-pressed="false">Met</button>
-      <button class="fchip" data-w="new" aria-pressed="false">Not yet</button>
-    </div>
-    <div class="lbl" id="voc-count"></div>
-    <div class="words" id="voc-list"></div>
-    <button class="more hidden" id="voc-more">Show more</button>
-  </section>
-
-  <!-- ============ WRITE ============ -->
-  <section id="v-write" class="hidden">
-    <div class="dash-h">
-      <h2>Write</h2>
-      <span class="lbl" id="wr-tally"></span>
-    </div>
-
-    <div class="wr-two">
-      <div class="panel wr-pad-panel" id="wr-padwrap">
-        <div class="wr-head">
-          <span class="wr-big" id="wr-char">—</span>
-          <div class="wr-meta">
-            <div class="wr-titleline">
-              <span class="wr-rankbadge" id="wr-rank" hidden></span>
-              <div class="wr-gloss" id="wr-gloss"></div>
-            </div>
-            <p class="wr-ctx" id="wr-ctx"></p>
-          </div>
-        </div>
-
-        <div class="wr-prog">
-          <div class="wr-pips" id="wr-pips" aria-hidden="true"></div>
-          <span class="wr-count" id="wr-count">—</span>
-        </div>
-
-        <svg id="wr-pad" viewBox="0 0 1024 1024" role="img"
-             aria-label="Handwriting pad. Draw the next stroke."></svg>
-
-        <p class="wr-say" id="wr-say"></p>
-
-        <div class="wr-acts">
-          <button class="btn sm" id="wr-watch" title="Play the whole character, stroke by stroke">Watch</button>
-          <button class="ghost sm" id="wr-hint-b" title="Show the stroke you owe">Show stroke</button>
-          <button class="ghost sm" id="wr-undo" title="Take back the last stroke">Undo</button>
-          <button class="ghost sm" id="wr-restart" title="Clear the pad and start this character again">Reset</button>
-          <button class="ghost sm" id="wr-outline" aria-pressed="true" title="Show the character faintly behind your writing">Guide</button>
-        </div>
-
-        <div class="wr-nav">
-          <button class="ghost sm" id="wr-prev" title="The character before this one">← Prev</button>
-          <span class="wr-pos" id="wr-pos"></span>
-          <button class="ghost sm" id="wr-next-ch" title="The next character in the list">Next →</button>
-        </div>
-      </div>
-
-      <div class="wr-side">
-        <div class="panel">
-          <h3>The 2,000 most common <span class="lbl" style="font-weight:500" id="wr-src-note"></span></h3>
-          <div class="wr-chips" id="wr-chars"></div>
-
-          <div class="wr-opts">
-            <div class="wr-opt">
-              <span class="ins-flabel">Script</span>
-              <div class="seg mini-seg" id="wr-script">
-                <button data-s="s" aria-pressed="true">简 Simplified</button>
-                <button data-s="t" aria-pressed="false">繁 Traditional</button>
-              </div>
-            </div>
-            <div class="wr-opt wr-band" id="wr-band-wrap">
-              <span class="ins-flabel">Rank</span>
-              <div class="filters" id="wr-band">
-                <button class="fchip" data-a="1" data-b="100" aria-pressed="true">1–100</button>
-                <button class="fchip" data-a="101" data-b="500" aria-pressed="false">101–500</button>
-                <button class="fchip" data-a="501" data-b="1000" aria-pressed="false">501–1000</button>
-                <button class="fchip" data-a="1001" data-b="1500" aria-pressed="false">1001–1500</button>
-                <button class="fchip" data-a="1501" data-b="2000" aria-pressed="false">1501–2000</button>
-              </div>
-            </div>
-          </div>
-
-          <input class="search" id="wr-q" type="search" autocomplete="off"
-                 placeholder="A character, a reading, or a meaning…">
-          <div class="wr-results" id="wr-results"></div>
-        </div>
-      </div>
-    </div>
-  </section>
 
   <!-- ============ SAVED ============ -->
   <section id="v-saved" class="hidden">
@@ -935,7 +809,6 @@ addEventListener("unhandledrejection", function(e){
       <span class="lbl" style="display:flex">Where it turns up <span style="font-weight:500;margin-left:auto" id="word-n"></span></span>
       <div class="uses" id="word-uses"></div>
       <div class="acts">
-        <button class="ghost" id="word-write" type="button">Practise writing</button>
         <button class="go" value="ok" type="submit" autofocus>Close</button>
       </div>
     </div>
@@ -958,10 +831,9 @@ addEventListener("unhandledrejection", function(e){
         <div class="keyrow"><span><kbd>P</kbd></span><span>Read it aloud</span></div>
         <div class="keyrow"><span><kbd>C</kbd></span><span>Copy the question</span></div>
         <div class="keyrow"><span><kbd>R</kbd></span><span>Reveal the other language</span></div>
-        <div class="keyrow"><span><kbd>T</kbd></span><span>Swap who answers first</span></div>
         <div class="keyrow"><span><kbd>B</kbd></span><span>Back to the previous card</span></div>
         <div class="keysec">Anywhere</div>
-        <div class="keyrow"><span><kbd>1</kbd>–<kbd>8</kbd></span><span>Decks · Dashboard · Insights · Browse · Words · Write · Saved · Settings</span></div>
+        <div class="keyrow"><span><kbd>1</kbd>–<kbd>6</kbd></span><span>Decks · Dashboard · Insights · Browse · Saved · Settings</span></div>
         <div class="keyrow"><span><kbd>/</kbd></span><span>Search the corpus</span></div>
         <div class="keyrow"><span><kbd>?</kbd></span><span>This list</span></div>
         <div class="keyrow"><span><kbd>esc</kbd></span><span>Back to Decks</span></div>
@@ -1010,7 +882,6 @@ addEventListener("unhandledrejection", function(e){
 <script src="./insights.js"></script>
 <script src="./folder.js"></script>
 <script src="./drive.js"></script>
-<script src="./write.js"></script>
 <script src="./boot.js"></script>
 <script src="./native.js"></script>
 </body>

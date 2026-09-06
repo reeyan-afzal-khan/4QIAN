@@ -90,7 +90,6 @@ const toggle = (el, key, after) => $(el).addEventListener("click", () => {
 toggle("#sw-py","pinyin", renderQOTD);   // the daily card shows pinyin too
 toggle("#sw-fr","frame");
 toggle("#sw-sc","score");
-toggle("#sw-tn","turns", () => { if(S.running) renderTurn(); });
 toggle("#sw-tr","track", () => {
   TRACK.setEnabled(S.track);
   toast(S.track ? "Tracking on" : "Tracking paused — the record is kept, just not added to");
@@ -104,11 +103,6 @@ $("#card").addEventListener("click", e => {
 });
 /* Tapping a name sets whose turn it is, rather than blindly flipping — with
    two names on screen, tapping the one you mean should select it. */
-$("#turn").addEventListener("click", e => {
-  const b = e.target.closest("button[data-t]"); if(!b) return;
-  S.turn = +b.dataset.t;
-  renderTurn(); save();
-});
 $("#b-warm").addEventListener("click", () => move(1));
 $("#b-cool").addEventListener("click", () => move(-1));
 $("#b-skip").addEventListener("click", () => next(3));
@@ -121,13 +115,13 @@ $("#b-save").addEventListener("click", e => {
   S.saved = [...saved]; save(); renderCard();
 });
 $("#b-copy").addEventListener("click", e => { e.stopPropagation(); copyCurrent(); });
-/* The copy button on the card uses whatever format you set in Settings. There
-   used to be a four-button "Send it" panel above the card offering the same
-   formats one tap each; it was a row of chrome for a choice that is made once
-   and then never again, so the setting kept it and the panel went. */
+/* Chinese and English, always. Both the four-button "Send it" panel above the
+   card and the format picker in Decks offered the same choice; a choice made
+   once and then never again is a setting, and a setting nobody changes is
+   just a default with a control attached. */
 async function copyCurrent(){
   if(!S.cur) return;
-  try{ await navigator.clipboard.writeText(copyText(S.cur, S.copyAs)); }
+  try{ await navigator.clipboard.writeText(copyText(S.cur)); }
   catch(_){ return toast("Could not reach the clipboard"); }
   const b = $("#b-copy"); b.setAttribute("aria-pressed","true");
   setTimeout(()=>b.setAttribute("aria-pressed","false"), 900);
@@ -271,30 +265,6 @@ $("#sw-studyopen").addEventListener("click", () => {
   save(); renderStudy();
 });
 
-/* ---------------- the Words view ---------------- */
-let vt;
-$("#voc-q").addEventListener("input", e => {
-  clearTimeout(vt);
-  vt = setTimeout(() => { vocTerm = e.target.value; vocShown = 60; renderVocab(); }, 140);
-});
-$("#voc-lv").addEventListener("click", e => {
-  const b = e.target.closest("button[data-l]"); if(!b) return;
-  const n = +b.dataset.l;
-  vocLevel.has(n) ? vocLevel.delete(n) : vocLevel.add(n);
-  b.setAttribute("aria-pressed", vocLevel.has(n));
-  vocShown = 60; renderVocab();
-});
-$("#voc-st").addEventListener("click", e => {
-  const b = e.target.closest("button[data-w]"); if(!b) return;
-  vocStatus = b.dataset.w;
-  [...$("#voc-st").querySelectorAll("button")].forEach(x =>
-    x.setAttribute("aria-pressed", x.dataset.w === vocStatus));
-  vocShown = 60; renderVocab();
-});
-$("#voc-more").addEventListener("click", () => { vocShown += 60; renderVocab(); });
-$("#voc-list").addEventListener("click", e => {
-  const w = e.target.closest(".wrow"); if(w) showWord(w.dataset.w);
-});
 $("#word-uses").addEventListener("click", e => {
   const u = e.target.closest(".wuse"); if(!u) return;
   $("#word").close();
@@ -326,7 +296,6 @@ $("#recent-people").addEventListener("click", e => {
   if(S.running) renderGauge();
 });
 
-seg("#copyas", "c", v => { S.copyAs = v; renderCopyPreview(); });
 seg("#learning", "l", v => applyLearning(v));
 
 /* ---------------- Settings: the profile ----------------
@@ -412,7 +381,6 @@ $("#prof-name").addEventListener("input", e => {
   profile().name = e.target.value.slice(0, 24);
   save();
   renderProfile();
-  renderTurn();          // the turn bar carries the name, so repaint it now
 });
 
 $("#prof-daily").addEventListener("click", e => {
@@ -959,7 +927,7 @@ document.addEventListener("keydown", e => {
   if(e.key === "?" || (e.key === "/" && e.shiftKey)){ e.preventDefault(); $("#help").showModal(); return; }
   if(e.key === "/"){ e.preventDefault(); show("browse"); $("#q").focus(); return; }
   const jump = {"1":"setup","2":"dash","3":"insights","4":"browse",
-                "5":"words","6":"write","7":"saved","8":"settings"}[e.key];
+                "5":"saved","6":"settings"}[e.key];
   if(jump){ show(jump); return; }
 
   /* --- in a session --- */
@@ -973,7 +941,6 @@ document.addEventListener("keydown", e => {
   else if(k==="c") copyCurrent();
   else if(k==="p") $("#b-speak").click();
   else if(k==="b") goBack();
-  else if(k==="t"){ S.turn ^= 1; renderCard(); save(); }
   else if(k==="r"){ if(!S.revealed){ S.revealed = true; renderCard(); } }
 });
 
@@ -1026,27 +993,17 @@ function renderAbout(){
     ["Question-specific", nf(ANS.count)],
     ["Decks", nf(DATA.decks.length)],
     ["Deck version", esc(String(DATA.version || "—"))],
-    ["Writable characters", nf(1894)],
     ["Running as", esc(where)],
     ["Storage", "This device only"]
   ];
   $("#about").innerHTML = rows.map(([k,v]) =>
-    `<div><span>${esc(k)}</span><b>${v}</b></div>`).join("")
-    /* The stroke data is not ours and its licence is copyleft: the credit
-       travels with the data, so it is rendered here rather than kept in a
-       file nobody opens. */
-    + `<p class="pmeta" style="margin:12px 0 0">Stroke-order data from the
-       <b>Make Me a Hanzi</b> project, by way of <b>hanzi-writer-data</b>,
-       derived from the Arphic PL fonts and used under the Arphic Public
-       License — the full text ships as <b>ARPHICPL.TXT</b>. Character readings and
-       meanings from <b>CC-CEDICT</b>, used under CC BY-SA 4.0.</p>`;
+    `<div><span>${esc(k)}</span><b>${v}</b></div>`).join("");
 }
 
 /* ---------------- boot ---------------- */
 $("#sw-py").setAttribute("aria-pressed", S.pinyin);
 $("#sw-fr").setAttribute("aria-pressed", S.frame);
 $("#sw-sc").setAttribute("aria-pressed", S.score);
-$("#sw-tn").setAttribute("aria-pressed", S.turns);
 $("#partner").value = S.partner || "";
 $("#sw-tr").setAttribute("aria-pressed", S.track);
 $("#sw-auto").setAttribute("aria-pressed", S.autoTheme);
@@ -1070,18 +1027,11 @@ try{
   applyText(S.text);
   // Auto-theme decides the palette; otherwise the stored one stands.
   if(S.autoTheme) syncSystemSkin(); else paintSkin(S.skin);
-  renderDecks(); renderTopics(); renderFilters(); renderVocFilters();
+  renderDecks(); renderTopics(); renderFilters();
   renderQOTD(); renderAbout();
   setPartner(S.partner); renderPeople(); renderPartner();
-  applyLearning(S.learning); renderCopyPreview();
-  wireDashboard(); wireInsights(); wireWrite();
-  /* A word you have just looked up is the most likely thing you want to
-     write, so the dialog hands it straight to the pad. */
-  $("#word-write").addEventListener("click", () => {
-    const hz = $("#word-hz").textContent;
-    $("#word").close();
-    writeThis(hz);
-  });
+  applyLearning(S.learning);
+  wireDashboard(); wireInsights();
   buildSettings(); makeCollapsible(); renderProfile();
   /* The folder handle lives in IndexedDB, so restoring it is async and the
      panel paints twice: once with what is known, once when the answer lands. */
