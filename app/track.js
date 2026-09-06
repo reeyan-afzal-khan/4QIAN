@@ -23,7 +23,11 @@ window.TRACK = (function(){
      everything else turns out to hang off: which questions you have already
      used on somebody, how far you got with them, and whether an icebreaker
      is safe to reuse. It is a plain name list; the id is the index. */
-  const EMPTY = {v:1, ev:[], ss:[], cnt:{}, day:{}, first:0, tot:0, pp:[], seen:{}};
+  /* `open` is the run in progress. It used to be a module-local variable, which
+     meant closing the app mid-run lost the session row entirely — the questions
+     were recorded, but the run never appeared in Sessions. Persisted, it can be
+     resumed on the next launch or banked if too much time has passed. */
+  const EMPTY = {v:1, ev:[], ss:[], cnt:{}, day:{}, first:0, tot:0, pp:[], seen:{}, open:null};
 
   // ev = [rank, tsSec, how, depth, deckIdx, dwellSec]
   const R=0, TS=1, HOW=2, DEP=3, DK=4, DW=5, PID=6;
@@ -148,19 +152,22 @@ window.TRACK = (function(){
     touch();
   }
 
-  let openSession = null;
   function sessionStart(deckIdx, pid){
-    openSession = {s: now(), d: deckIdx|0, p: pid == null ? -1 : pid|0};
+    T.open = {s: now(), d: deckIdx|0, p: pid == null ? -1 : pid|0};
+    touch();
   }
   function sessionEnd(asked, deepest, topics){
-    if(!enabled || !openSession) { openSession = null; return; }
+    const o = T.open;
+    T.open = null;
+    if(!enabled || !o){ touch(); return; }
     if(asked > 0){
-      T.ss.push([openSession.s, now(), openSession.d, asked|0, deepest|0, topics|0, openSession.p]);
+      T.ss.push([o.s, now(), o.d, asked|0, deepest|0, topics|0, o.p]);
       if(T.ss.length > 500) T.ss.splice(0, T.ss.length - 500);
-      touch();
     }
-    openSession = null;
+    touch();
   }
+  /* The run that was in progress when the app last closed, if any. */
+  const sessionOpen = () => T.open;
 
   /* ---------------- reading ---------------- */
 
@@ -554,12 +561,12 @@ window.TRACK = (function(){
   }
 
   function wipe(){
-    T = clone(EMPTY); openSession = null;
+    T = clone(EMPTY);
     dirty = true; flush();
   }
 
   return {R, TS, HOW, DEP, DK, DW, PID, HOW_NAME,
-          setEnabled, record, sessionStart, sessionEnd,
+          setEnabled, record, sessionStart, sessionEnd, sessionOpen,
           events, sessions, counts, days, total, first, uniques, streak,
           personId, people, personName, personStats, seenBy, markSeen, forgetSeen,
           toCSV, importCSV, importJSON, wipe, flush, dayKey};

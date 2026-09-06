@@ -27,9 +27,9 @@ Chinese. It replaced 你, which said *you* but did not say which app. It is draw
 SVG rather than kept as a binary, so the glyph, the colours and the safe-zone padding are
 all editable text and the three PNGs cannot drift apart: `node scripts/make-icons.mjs`
 regenerates them, and `--check` renders without writing and reports whether the CJK glyph
-actually resolved on the machine doing the build. After changing it, re-run
-`node scripts/android-brand.mjs` to push the new mark through to the Android launcher
-icons and splash.
+actually resolved on the machine doing the build. The Android launcher icons and splash are
+re-derived from those PNGs **by the APK build itself**, so changing the mark is one command
+and the phone cannot end up a version behind the browser.
 
 ---
 
@@ -650,6 +650,60 @@ it takes the word breakdown out of the session card and a panel off the Dashboar
 why it was not assumed here.
 ---
 
+## Picking up where you left off
+
+The app is a sidecar to a chat window: you read a question, switch to HelloTalk to paste it,
+come back. On Android that means the WebView is evicted routinely, and until now every
+return landed on Decks with the question gone. `core.js` did it deliberately —
+`S.running = false; S.view = "setup"` on every load — even though the card, the deck, the
+depth and the tally were all still in storage. Everything needed to carry on was there and
+was being thrown away.
+
+A run now resumes: same question, same depth, same tally, and the clock continues from the
+original start rather than restarting at zero. Anything older than **six hours** is not a
+conversation you are still having, so it is banked as a finished run and you land on Decks.
+
+That second half fixed a quieter bug. The open session used to be a module-local variable in
+`track.js`, so a run interrupted by anything other than *End session* was never written to
+the record — the individual questions counted, but the run itself vanished from Sessions.
+The open run is part of the saved record now, which is what makes both resuming it and
+banking it possible.
+
+## Smaller things that were wrong
+
+**Your place in a list.** Browse and the Dashboard are long. Scrolling halfway down Browse,
+glancing at the Dashboard and coming back used to put you at the top again. Each view now
+remembers where it was and returns you there; a view you have not visited still opens at the
+top, which is the other half of getting this right.
+
+The restore is deliberately **not** on `requestAnimationFrame`. A hidden page does not fire
+frames, and a scroll restore that silently never happens is worse than one that happens
+twice — the same trap that once left the stroke animation hanging forever.
+
+**Where the keyboard was.** Pressing <kbd>2</kbd> for the Dashboard moved the view but left
+focus on `<body>`, so the next Tab started at the skip link rather than at anything you had
+just asked for. Focus now moves into `#main` — which already carried `tabindex="-1"` for
+exactly this, unused. It is taken with `preventScroll`, so it cannot fight the scroll
+restore above it.
+
+**Two launcher shortcuts that did nothing.** The manifest offers Dashboard and Browse as
+Android long-press shortcuts, pointing at `index.html#dash` and `index.html#browse`. Nothing
+read the hash, so both simply opened the app at Decks. The hash is now read at launch and on
+change — read, never written, so the Android back button still means *leave* rather than
+*undo a tab*.
+
+**Three unlabelled controls.** The two Insights dropdowns and the CSV file input had a
+visible label beside them but nothing an assistive technology could associate, so they
+announced as bare comboboxes. Given `aria-label`s.
+
+**One tap target worth fixing.** Auditing every button and link across six views at phone
+width found exactly one below 24px: the inline *open Insights* link, at the text's own 18px.
+On a coarse pointer its hit area now extends past the text by 13px vertically, without the
+text moving — the sentence it sits in is unchanged. The rest of the distribution was already
+healthy (111 of 229 at 36px or more), so nothing else was inflated to chase a number at the
+cost of the vertical space this app has been trimming all along.
+---
+
 ## Chrome removed from a run
 
 Three controls went, in order, for the same reason: each was permanent furniture around a
@@ -1173,7 +1227,27 @@ Install it by copying the `.apk` to the phone and opening it — Android will as
 installs from that source once. `adb install -r release/android/4QIAN-1.0.0.apk` also
 works; `adb` is at `tools/android-sdk/platform-tools/adb`.
 
-If you change the icons or app colours, re-run `node scripts/android-brand.mjs`.
+### The icon that would not change
+
+The Android launcher icon lagged the app's own for a while, and the reason was structural
+rather than a bad file. `android-brand.mjs` derives the launcher icons, the splash and the
+theme colours from `app/icon-512.png` and `app/icon-maskable.png` — but **the build never
+ran it**. It was a thing you were supposed to remember after changing the art, so the APK
+kept shipping whatever icons happened to be sitting in `android/app/src/main/res` from the
+last time somebody did.
+
+It is now step 2 of `npm run android:apk`, between staging the web build and syncing it in.
+The script writes everything it writes from source each time, so running it every build
+costs nothing and removes the drift entirely.
+
+The Capacitor scaffold's own `drawable-v24/ic_launcher_foreground.xml` — the white Android
+robot — was still in the tree too. Nothing referenced it, because the adaptive icon points
+at `@mipmap/ic_launcher_foreground`, but a one-character edit to that reference would have
+brought the robot back. Deleted.
+
+**If you are still seeing the old icon after installing:** Android caches launcher icons per
+package, and installing over an existing copy does not always refresh it. Uninstall first,
+or restart the launcher.
 
 > **Keep the signing key.** `android/keys/4qian-release.jks` and
 > `android/keystore.properties` sign the release APK. Android will refuse to install an
@@ -1188,7 +1262,8 @@ If you change the icons or app colours, re-run `node scripts/android-brand.mjs`.
 `?` opens the full list in the app; **Decks → Show me how it works** runs the tour. In a session: `←` `→` change depth, `space`
 deals the next card at the same depth, `X` skips, `S` saves, `P` reads it aloud,
 `C` copies, `R` reveals the other language, `B` steps back. Anywhere: `1`–`6` jump between the six tabs, `/` focuses the search, `esc`
-returns to Decks.
+returns to Decks. Changing view moves focus into the content, so Tab carries on from
+where you are rather than from the top of the page.
 
 ---
 

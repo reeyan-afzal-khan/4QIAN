@@ -1044,7 +1044,24 @@ try{
   $("#dr-device").value = DRIVE.get().device || DRIVE.defaultDevice();
   renderDrive();
   $("#b-go-insights").addEventListener("click", () => show("insights"));
-  show("setup");
+
+  /* Pick up where the app was closed. Everything needed is already saved —
+     the card, the deck, the depth, the tally — so this restores the view and
+     the clock rather than re-drawing anything, and you land on the same
+     question you left. A run too old to be the conversation you are still
+     having is banked instead, which also stops it vanishing from Sessions
+     the way an interrupted run used to. */
+  if(resumable){
+    S.running = true;
+    startRunClock(resumable.s * 1000);
+    show("session");
+    renderCard(); renderGauge(); renderGoal(); renderStudy();
+    toast("Picked up where you left off");
+  } else {
+    if(TRACK.sessionOpen()) TRACK.sessionEnd(S.asked, S.deepest, S.topics.length);
+    S.cur = null;
+    show(viewFromHash() || "setup");
+  }
   /* First run: offer the tour rather than launching into it, because an
      overlay you did not ask for is the thing people close without reading. */
   if(!S.toured) setTimeout(() => { if(!TOUR.open()){ sessionTourPending = true; TOUR.start("setup"); } }, 500);

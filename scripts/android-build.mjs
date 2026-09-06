@@ -32,13 +32,21 @@ const env = {...process.env, JAVA_HOME, ANDROID_HOME, ANDROID_SDK_ROOT: ANDROID_
 const run = (cmd, args, cwd) =>
   execFileSync(cmd, args, {cwd: cwd || ROOT, env, stdio: "inherit", shell: true});
 
-console.log("1/4  staging web build");
+console.log("1/5  staging web build");
 run("node", ["build.mjs"]);
 
-console.log("2/4  syncing into the android project");
+/* The launcher icon, splash and theme colours are derived from app/icon-*.png
+   every time, not branded once by hand and hoped for. They were manual for a
+   while and the APK duly shipped the previous icon: nothing in the build knew
+   the art had changed. android-brand.mjs writes everything it writes from
+   source, so running it each time is free and makes the drift impossible. */
+console.log("2/5  branding the android project");
+run("node", ["scripts/android-brand.mjs"]);
+
+console.log("3/5  syncing into the android project");
 run("npx", ["cap", "copy", "android"]);
 
-console.log("3/4  gradle assembleRelease");
+console.log("4/5  gradle assembleRelease");
 writeFileSync(join(ROOT, "android", "local.properties"),
   "sdk.dir=" + ANDROID_HOME.replace(/\\/g, "\\\\") + "\n");
 /* Quoted absolute path, not a bare "gradlew.bat": cmd.exe does not search the
@@ -46,7 +54,7 @@ writeFileSync(join(ROOT, "android", "local.properties"),
 const wrapper = join(ROOT, "android", process.platform === "win32" ? "gradlew.bat" : "gradlew");
 run(`"${wrapper}"`, ["assembleRelease", "--no-daemon"], join(ROOT, "android"));
 
-console.log("4/4  collecting the apk");
+console.log("5/5  collecting the apk");
 const out = join(ROOT, "android", "app", "build", "outputs", "apk", "release");
 const apk = readdirSync(out).find(f => f.endsWith(".apk") && !f.includes("unsigned"));
 if(!apk) throw new Error("Gradle produced no signed APK in " + out);

@@ -86,7 +86,24 @@ try{
   const raw = localStorage.getItem(LS) || localStorage.getItem(LS_OLD);
   if(raw) Object.assign(S, JSON.parse(raw));
 }catch(e){}
-S.running = false; S.view = "setup";
+/* A run used to be discarded on every load. For an app whose whole point is
+   sitting beside a chat window — you switch to HelloTalk to paste, you switch
+   back — that is the wrong default twice over: on Android the WebView is
+   evicted routinely, and coming back to Decks having lost the question you
+   were on is the single most annoying thing this app did.
+   
+   `resumable` decides on the way in; boot.js acts on it once the deck and the
+   renderers exist. Anything older than this is not a conversation you are
+   still having, so it is banked as a finished run instead. */
+const RESUME_WINDOW = 6 * 3600;          // seconds
+S.view = "setup";
+const resumable = (() => {
+  const open = TRACK.sessionOpen();
+  if(!S.running || !S.cur || !open) return null;
+  const age = Math.floor(Date.now() / 1000) - open.s;
+  return age >= 0 && age < RESUME_WINDOW ? open : null;
+})();
+S.running = false;                        // until boot says otherwise
 const save = () => {
   try{
     localStorage.setItem(LS, JSON.stringify(S));
@@ -219,6 +236,11 @@ function draw(){
 }
 
 /* ---------------- views ---------------- */
+/* Where each view was scrolled to when you left it. Browse and the Dashboard
+   are long, and losing your place in one because you glanced at the other is
+   the kind of small friction that makes an app feel careless. */
+const scrollAt = {};
+
 function show(v){
   // Leaving a live session banks it, so the record does not lose a run just
   // because someone tapped Dashboard instead of End session.
@@ -226,6 +248,8 @@ function show(v){
     if(S.running) finishSession(false);
     SPEAK.stop(); stopRunClock();
   }
+  if(S.view && S.view !== v) scrollAt[S.view] = window.scrollY;
+  const returning = v !== S.view;
   S.view = v;
   for(const n of ["setup","session","dash","insights","settings","browse","saved"])
     $("#v-"+n).classList.toggle("hidden", n!==v);
@@ -242,6 +266,24 @@ function show(v){
   if(v==="dash")   renderDash();
   if(v==="insights") renderInsights();
   if(v==="settings") renderProfile();
+
+  if(returning){
+    /* The renderers above have already written the new view's DOM, so the page
+       is the right height to scroll to now. The timer is a second attempt for
+       content that settles late — a chart measuring itself, a font arriving.
+       Deliberately not requestAnimationFrame: it does not fire while the page
+       is hidden, and a restore that silently never happens is worse than one
+       that happens twice. */
+    const y = scrollAt[v] || 0;
+    window.scrollTo(0, y);
+    setTimeout(() => { if(S.view === v && Math.abs(window.scrollY - y) > 2) window.scrollTo(0, y); }, 0);
+
+    /* Send focus into the view. Without this a keyboard user who presses 2
+       for the Dashboard is still at the top of the document, and the next Tab
+       lands on the skip link rather than on anything they just asked for. */
+    const main = $("#main");
+    if(main && !$("#main").contains(document.activeElement)) main.focus({preventScroll: true});
+  }
   if(v==="setup"){ renderQOTD(); renderPeople(); }  // both cheap, both go stale
   scrollTo(0,0);
   save();
@@ -350,6 +392,21 @@ function renderTopics(){
    whoever you are talking to right now, which changes conversation to
    conversation, so it reads off the partner box rather than off a second name
    field nobody would keep up to date. */
+/* The manifest offers Dashboard and Browse as launcher shortcuts, which open
+   index.html#dash and index.html#browse. Nothing read the hash, so both
+   shortcuts simply opened the app at Decks — an advertised feature that did
+   nothing. Read, never written: the app does not push history entries, so the
+   Android back button keeps meaning "leave", not "undo a tab". */
+const HASH_VIEW = {dash:"dash", insights:"insights", browse:"browse",
+                   saved:"saved", settings:"settings", setup:"setup"};
+function viewFromHash(){
+  return HASH_VIEW[(location.hash || "").replace(/^#/, "")] || null;
+}
+addEventListener("hashchange", () => {
+  const v = viewFromHash();
+  if(v && v !== S.view) show(v);
+});
+
 /* ---------------- session ---------------- */
 let cardShownAt = 0;
 
@@ -470,8 +527,8 @@ function renderGoal(){
     : Math.round(Math.min(1, S.asked/20)*100) + "%";
   el.classList.toggle("done", !!goal && S.asked >= goal);
 }
-function startRunClock(){
-  runStart = Date.now();
+function startRunClock(from){
+  runStart = from || Date.now();
   clearInterval(runTimer);
   runTimer = setInterval(() => { if(S.view === "session") renderGoal(); }, 1000);
 }

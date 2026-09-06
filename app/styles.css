@@ -1012,6 +1012,15 @@ button.ghost.sm{padding:7px 11px;font-size:12px}
 .linky:hover{text-decoration-thickness:2px}
 .linky:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:3px}
 
+/* An inline link sits at the text's own height — 18px, which is a fine target
+   for a mouse and a poor one for a thumb. On touch the hit area is grown past
+   the text rather than the text being grown, so the sentence it lives in is
+   unchanged and nothing moves. */
+@media (pointer:coarse){
+  .linky{position:relative}
+  .linky::after{content:"";position:absolute;inset:-13px -8px}
+}
+
 /* --- Google Drive panel --- */
 #drive-panel .bad,#drive-panel p.bad{color:var(--h5)}
 .drive-files{display:flex;flex-direction:column;gap:1px;margin-top:12px}

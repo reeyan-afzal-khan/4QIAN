@@ -507,7 +507,7 @@ addEventListener("unhandledrejection", function(e){
           <button class="ghost sm hidden" id="b-fold-forget">Stop using it</button>
         </div>
       </div>
-      <input type="file" id="imp-file" accept=".csv,text/csv,.json,application/json" class="hidden">
+      <input type="file" id="imp-file" aria-label="Choose a CSV file to import" accept=".csv,text/csv,.json,application/json" class="hidden">
       <p class="pmeta" style="margin:12px 0 0" id="storage-note"></p>
     </div>
 
@@ -567,11 +567,11 @@ addEventListener("unhandledrejection", function(e){
         </div>
         <div class="ins-fgroup">
           <span class="ins-flabel">Person</span>
-          <select class="ins-sel" id="ins-person"><option value="">Everyone</option></select>
+          <select class="ins-sel" id="ins-person" aria-label="Filter by person"><option value="">Everyone</option></select>
         </div>
         <div class="ins-fgroup">
           <span class="ins-flabel">Deck</span>
-          <select class="ins-sel" id="ins-deck"><option value="">Every deck</option></select>
+          <select class="ins-sel" id="ins-deck" aria-label="Filter by deck"><option value="">Every deck</option></select>
         </div>
         <div class="ins-fgroup ins-fright">
           <button class="ghost sm" id="ins-reset">Clear filters</button>
