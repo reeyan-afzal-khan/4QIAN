@@ -221,13 +221,17 @@ function show(v){
     SPEAK.stop(); stopRunClock();
   }
   S.view = v;
-  for(const n of ["setup","session","dash","insights","settings","browse","words","saved"])
+  for(const n of ["setup","session","dash","insights","settings","browse","words","write","saved"])
     $("#v-"+n).classList.toggle("hidden", n!==v);
-  $("#v-"+v).style.display = "flex";
+  /* No inline display here. `.hidden` is display:none!important, so it wins
+     while a view is hidden, and when it is not the stylesheet decides — which
+     it has to, because the session view is a grid on a wide screen and an
+     inline `display:flex` would silently beat that rule. */
   [...$("#nav").children].forEach(b => b.setAttribute("aria-pressed", b.dataset.v===v));
   /* The rail card counts today's questions, so it is stale the moment a run
      ends. A view change is the cheapest honest moment to repaint it. */
   if(window.renderRail) renderRail();
+  if(v==="write")  renderWrite();
   if(v==="browse") runSearch();
   if(v==="saved")  renderSaved();
   if(v==="dash")   renderDash();
@@ -1133,16 +1137,6 @@ function copyText(q, how){
   return f.of(q);
 }
 
-async function sendCopy(how){
-  if(!S.cur) return;
-  const text = copyText(S.cur, how);
-  try{ await navigator.clipboard.writeText(text); }
-  catch(_){ return toast("Could not reach the clipboard"); }
-  const label = (COPY_AS[how] || COPY_AS.both).nm;
-  toast("Copied " + label + " — paste it into your chat");
-  const b = document.querySelector(`.sendb[data-send="${how}"]`);
-  if(b){ b.classList.add("sent"); setTimeout(() => b.classList.remove("sent"), 900); }
-}
 
 /* The settings panel shows the format rather than describing it, because
    three lines of sample is shorter than a sentence explaining them. */
@@ -1240,10 +1234,6 @@ const TOUR = (function(){
     {t:"#card", h:"The question",
      p:"Tap the speaker to hear the Chinese before you send it, and the ? beside it explains "
       + "every label on the card — including how common the question actually is."},
-    {t:"#sendbar", h:"Send it",
-     p:"Four formats, one tap each, straight onto your clipboard: Chinese on its own for a "
-      + "native speaker, English on its own, both together, or both with pinyin for you. "
-      + "Then paste it into HelloTalk, Discord, or wherever you are."},
     {t:"#study", h:"Help with the answer",
      p:"Open this for the Chinese broken into words with meanings, and a full two-minute model "
       + "answer built the way an IELTS examiner wants — answer, reason, example, conclusion."},

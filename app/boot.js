@@ -121,8 +121,10 @@ $("#b-save").addEventListener("click", e => {
   S.saved = [...saved]; save(); renderCard();
 });
 $("#b-copy").addEventListener("click", e => { e.stopPropagation(); copyCurrent(); });
-/* The copy button on the card uses whatever format you set in Decks, so the
-   one-tap path and the four-button path put the same thing on the clipboard. */
+/* The copy button on the card uses whatever format you set in Settings. There
+   used to be a four-button "Send it" panel above the card offering the same
+   formats one tap each; it was a row of chrome for a choice that is made once
+   and then never again, so the setting kept it and the panel went. */
 async function copyCurrent(){
   if(!S.cur) return;
   try{ await navigator.clipboard.writeText(copyText(S.cur, S.copyAs)); }
@@ -322,12 +324,6 @@ $("#recent-people").addEventListener("click", e => {
     ? `${b.dataset.p} — ${nf(st.covered)} questions already used, they won't come round again`
     : `${b.dataset.p} — nothing asked yet`);
   if(S.running) renderGauge();
-});
-
-/* ---------------- send it ---------------- */
-$("#sendbar").addEventListener("click", e => {
-  const b = e.target.closest("button[data-send]"); if(!b) return;
-  sendCopy(b.dataset.send);
 });
 
 seg("#copyas", "c", v => { S.copyAs = v; renderCopyPreview(); });
@@ -963,7 +959,7 @@ document.addEventListener("keydown", e => {
   if(e.key === "?" || (e.key === "/" && e.shiftKey)){ e.preventDefault(); $("#help").showModal(); return; }
   if(e.key === "/"){ e.preventDefault(); show("browse"); $("#q").focus(); return; }
   const jump = {"1":"setup","2":"dash","3":"insights","4":"browse",
-                "5":"words","6":"saved","7":"settings"}[e.key];
+                "5":"words","6":"write","7":"saved","8":"settings"}[e.key];
   if(jump){ show(jump); return; }
 
   /* --- in a session --- */
@@ -1030,11 +1026,20 @@ function renderAbout(){
     ["Question-specific", nf(ANS.count)],
     ["Decks", nf(DATA.decks.length)],
     ["Deck version", esc(String(DATA.version || "—"))],
+    ["Writable characters", nf(1894)],
     ["Running as", esc(where)],
     ["Storage", "This device only"]
   ];
   $("#about").innerHTML = rows.map(([k,v]) =>
-    `<div><span>${esc(k)}</span><b>${v}</b></div>`).join("");
+    `<div><span>${esc(k)}</span><b>${v}</b></div>`).join("")
+    /* The stroke data is not ours and its licence is copyleft: the credit
+       travels with the data, so it is rendered here rather than kept in a
+       file nobody opens. */
+    + `<p class="pmeta" style="margin:12px 0 0">Stroke-order data from the
+       <b>Make Me a Hanzi</b> project, by way of <b>hanzi-writer-data</b>,
+       derived from the Arphic PL fonts and used under the Arphic Public
+       License — the full text ships as <b>ARPHICPL.TXT</b>. Character readings and
+       meanings from <b>CC-CEDICT</b>, used under CC BY-SA 4.0.</p>`;
 }
 
 /* ---------------- boot ---------------- */
@@ -1069,7 +1074,14 @@ try{
   renderQOTD(); renderAbout();
   setPartner(S.partner); renderPeople(); renderPartner();
   applyLearning(S.learning); renderCopyPreview();
-  wireDashboard(); wireInsights();
+  wireDashboard(); wireInsights(); wireWrite();
+  /* A word you have just looked up is the most likely thing you want to
+     write, so the dialog hands it straight to the pad. */
+  $("#word-write").addEventListener("click", () => {
+    const hz = $("#word-hz").textContent;
+    $("#word").close();
+    writeThis(hz);
+  });
   buildSettings(); makeCollapsible(); renderProfile();
   /* The folder handle lives in IndexedDB, so restoring it is async and the
      panel paints twice: once with what is known, once when the answer lands. */

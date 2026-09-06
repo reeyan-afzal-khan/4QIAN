@@ -79,7 +79,8 @@ addEventListener("unhandledrejection", function(e){
       <button data-v="insights" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18"/><path d="M4 15l5-6 4 4 6-7"/></svg><span>Insights</span></button>
       <button data-v="browse" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg><span>Browse</span></button>
       <button data-v="words" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 5.5v15"/><path d="M9 8h6"/></svg><span>Words</span></button>
-      <button data-v="saved" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4.5L6 21z"/></svg><span>Saved</span></button>
+      <button data-v="write" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M14.5 6.5l3 3"/><path d="M4 20l1-3"/></svg><span>Write</span></button>
+    <button data-v="saved" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4.5L6 21z"/></svg><span>Saved</span></button>
       <button data-v="settings" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.9 19.3a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.7 8.9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15.1 4.7a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9a1.7 1.7 0 0 0 1.56 1.03H21a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15z"/></svg><span>Settings</span></button>
     </nav>
     <div class="railcard" id="railcard">
@@ -298,37 +299,32 @@ addEventListener("unhandledrejection", function(e){
 
   <!-- ============ SESSION ============ -->
   <section id="v-session" class="hidden">
-    <div class="goal" id="goalbar">
-      <span class="gl" id="goal-l">This run</span>
-      <span class="gv" id="goal-v">0 asked · 0:00</span>
-      <span class="gtrack"><span class="gfill" id="goal-fill" style="width:0%"></span></span>
-      <span class="gwho" id="goal-who"></span>
-    </div>
-
-    <div class="gauge">
-      <div class="gauge-head">
-        <strong id="deck-name">Coffee chat</strong>
-        <span class="lbl" id="deck-rule"></span>
+    <!-- How the run is set up. One wrapper so the wide layout can move all
+         four as a unit instead of offsetting each by a guessed height. -->
+    <div class="runside" id="runside">
+      <div class="goal" id="goalbar">
+        <span class="gl" id="goal-l">This run</span>
+        <span class="gv" id="goal-v">0 asked · 0:00</span>
+        <span class="gtrack"><span class="gfill" id="goal-fill" style="width:0%"></span></span>
+        <span class="gwho" id="goal-who"></span>
       </div>
-      <div class="rungs" id="rungs"></div>
-    </div>
 
-    <div class="turnbar" id="turnbar">
-      <span class="lbl">Whose turn to answer?</span>
-      <div class="seg turn-seg" id="turn">
-        <button data-t="0" aria-pressed="true" id="turn-a">You</button>
-        <button data-t="1" aria-pressed="false" id="turn-b">Them</button>
+      <div class="gauge" id="gauge">
+        <div class="gauge-head">
+          <strong id="deck-name">Coffee chat</strong>
+          <span class="lbl" id="deck-rule"></span>
+        </div>
+        <div class="rungs" id="rungs"></div>
       </div>
-    </div>
 
-    <div class="sendbar" id="sendbar">
-      <span class="lbl">Send it</span>
-      <div class="send-btns">
-        <button class="sendb" data-send="zh">中文</button>
-        <button class="sendb" data-send="en">English</button>
-        <button class="sendb" data-send="both">Both</button>
-        <button class="sendb" data-send="all">+ pinyin</button>
+      <div class="turnbar" id="turnbar">
+        <span class="lbl">Whose turn to answer?</span>
+        <div class="seg turn-seg" id="turn">
+          <button data-t="0" aria-pressed="true" id="turn-a">You</button>
+          <button data-t="1" aria-pressed="false" id="turn-b">Them</button>
+        </div>
       </div>
+
     </div>
 
     <article class="card" id="card">
@@ -746,6 +742,84 @@ addEventListener("unhandledrejection", function(e){
     <button class="more hidden" id="voc-more">Show more</button>
   </section>
 
+  <!-- ============ WRITE ============ -->
+  <section id="v-write" class="hidden">
+    <div class="dash-h">
+      <h2>Write</h2>
+      <span class="lbl" id="wr-tally"></span>
+    </div>
+
+    <div class="wr-two">
+      <div class="panel wr-pad-panel" id="wr-padwrap">
+        <div class="wr-head">
+          <span class="wr-big" id="wr-char">—</span>
+          <div class="wr-meta">
+            <div class="wr-titleline">
+              <span class="wr-rankbadge" id="wr-rank" hidden></span>
+              <div class="wr-gloss" id="wr-gloss"></div>
+            </div>
+            <p class="wr-ctx" id="wr-ctx"></p>
+          </div>
+        </div>
+
+        <div class="wr-prog">
+          <div class="wr-pips" id="wr-pips" aria-hidden="true"></div>
+          <span class="wr-count" id="wr-count">—</span>
+        </div>
+
+        <svg id="wr-pad" viewBox="0 0 1024 1024" role="img"
+             aria-label="Handwriting pad. Draw the next stroke."></svg>
+
+        <p class="wr-say" id="wr-say"></p>
+
+        <div class="wr-acts">
+          <button class="btn sm" id="wr-watch" title="Play the whole character, stroke by stroke">Watch</button>
+          <button class="ghost sm" id="wr-hint-b" title="Show the stroke you owe">Show stroke</button>
+          <button class="ghost sm" id="wr-undo" title="Take back the last stroke">Undo</button>
+          <button class="ghost sm" id="wr-restart" title="Clear the pad and start this character again">Reset</button>
+          <button class="ghost sm" id="wr-outline" aria-pressed="true" title="Show the character faintly behind your writing">Guide</button>
+        </div>
+
+        <div class="wr-nav">
+          <button class="ghost sm" id="wr-prev" title="The character before this one">← Prev</button>
+          <span class="wr-pos" id="wr-pos"></span>
+          <button class="ghost sm" id="wr-next-ch" title="The next character in the list">Next →</button>
+        </div>
+      </div>
+
+      <div class="wr-side">
+        <div class="panel">
+          <h3>The 2,000 most common <span class="lbl" style="font-weight:500" id="wr-src-note"></span></h3>
+          <div class="wr-chips" id="wr-chars"></div>
+
+          <div class="wr-opts">
+            <div class="wr-opt">
+              <span class="ins-flabel">Script</span>
+              <div class="seg mini-seg" id="wr-script">
+                <button data-s="s" aria-pressed="true">简 Simplified</button>
+                <button data-s="t" aria-pressed="false">繁 Traditional</button>
+              </div>
+            </div>
+            <div class="wr-opt wr-band" id="wr-band-wrap">
+              <span class="ins-flabel">Rank</span>
+              <div class="filters" id="wr-band">
+                <button class="fchip" data-a="1" data-b="100" aria-pressed="true">1–100</button>
+                <button class="fchip" data-a="101" data-b="500" aria-pressed="false">101–500</button>
+                <button class="fchip" data-a="501" data-b="1000" aria-pressed="false">501–1000</button>
+                <button class="fchip" data-a="1001" data-b="1500" aria-pressed="false">1001–1500</button>
+                <button class="fchip" data-a="1501" data-b="2000" aria-pressed="false">1501–2000</button>
+              </div>
+            </div>
+          </div>
+
+          <input class="search" id="wr-q" type="search" autocomplete="off"
+                 placeholder="A character, a reading, or a meaning…">
+          <div class="wr-results" id="wr-results"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ SAVED ============ -->
   <section id="v-saved" class="hidden">
     <div class="act-row" id="saved-acts">
@@ -861,6 +935,7 @@ addEventListener("unhandledrejection", function(e){
       <span class="lbl" style="display:flex">Where it turns up <span style="font-weight:500;margin-left:auto" id="word-n"></span></span>
       <div class="uses" id="word-uses"></div>
       <div class="acts">
+        <button class="ghost" id="word-write" type="button">Practise writing</button>
         <button class="go" value="ok" type="submit" autofocus>Close</button>
       </div>
     </div>
@@ -886,7 +961,7 @@ addEventListener("unhandledrejection", function(e){
         <div class="keyrow"><span><kbd>T</kbd></span><span>Swap who answers first</span></div>
         <div class="keyrow"><span><kbd>B</kbd></span><span>Back to the previous card</span></div>
         <div class="keysec">Anywhere</div>
-        <div class="keyrow"><span><kbd>1</kbd>–<kbd>7</kbd></span><span>Decks · Dashboard · Insights · Browse · Words · Saved · Settings</span></div>
+        <div class="keyrow"><span><kbd>1</kbd>–<kbd>8</kbd></span><span>Decks · Dashboard · Insights · Browse · Words · Write · Saved · Settings</span></div>
         <div class="keyrow"><span><kbd>/</kbd></span><span>Search the corpus</span></div>
         <div class="keyrow"><span><kbd>?</kbd></span><span>This list</span></div>
         <div class="keyrow"><span><kbd>esc</kbd></span><span>Back to Decks</span></div>
@@ -935,6 +1010,7 @@ addEventListener("unhandledrejection", function(e){
 <script src="./insights.js"></script>
 <script src="./folder.js"></script>
 <script src="./drive.js"></script>
+<script src="./write.js"></script>
 <script src="./boot.js"></script>
 <script src="./native.js"></script>
 </body>
