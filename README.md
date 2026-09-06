@@ -13,7 +13,7 @@ Ships as two things from one source tree:
 | Target | Output | How it runs |
 | --- | --- | --- |
 | Web / PWA | `release/web/` + `4QIAN-web.zip` | Any static host, or opened from disk. Installable from Chrome on Android. |
-| Android | `release/android/4QIAN-4.0.0.apk` | Capacitor. Signed, sideloadable. |
+| Android | `release/android/4QIAN-1.0.0.apk` | Capacitor. Signed, sideloadable. |
 
 The application id is `com.fourqian.app`. It is not `com.4qian.app` because a package segment
 cannot begin with a digit — that is a Java identifier rule, not a preference, so the
@@ -1116,6 +1116,34 @@ own history keeps both.
 npm install
 ```
 
+### Versioning
+
+**1.0.0** is the first release. Web and Android ship the same code from the same build:
+`build.mjs` stages `app/` into `release/web/`, and `release/web` is the `webDir` Capacitor
+copies into the APK — so there is no path by which the phone can be a different app from the
+browser, only a staler one.
+
+Three files carry the number, and nothing about them forces agreement:
+
+| file | what it sets |
+| --- | --- |
+| `package.json` | the source of truth, and the APK's filename |
+| `app/core.js` | `APP_VERSION`, shown in the About panel |
+| `android/app/build.gradle` | `versionName`, what Android shows in Settings → Apps |
+
+So `build.mjs` **checks all three and refuses to build if they disagree**. Shipping 1.0.0
+inside a file called `4QIAN-4.0.0.apk` is a real mistake and an easy one; it now fails at
+the build rather than at a download link. The APK's name is derived from `package.json`
+rather than typed out, so bumping the release renames the artefact with it.
+
+`APP_VERSION` is hard-coded rather than stamped in like the service worker's cache name.
+`app/` has to run straight from a folder with no build step, and a `__VERSION__` placeholder
+would be sitting there in the About panel for anyone who opened `index.html` directly. The
+assertion is what makes hard-coding safe.
+
+`versionCode` stays at **1** — it is the integer Android orders updates by, and this is the
+first one.
+
 ### Web
 
 ```bash
@@ -1142,7 +1170,7 @@ Stages the web build, syncs it into the Capacitor project, and runs `gradle asse
 using the JDK and SDK in `tools/`. The APK lands in `release/android/`.
 
 Install it by copying the `.apk` to the phone and opening it — Android will ask you to allow
-installs from that source once. `adb install -r release/android/4QIAN-4.0.0.apk` also
+installs from that source once. `adb install -r release/android/4QIAN-1.0.0.apk` also
 works; `adb` is at `tools/android-sdk/platform-tools/adb`.
 
 If you change the icons or app colours, re-run `node scripts/android-brand.mjs`.

@@ -8,7 +8,7 @@
  * retires the old cache instead of leaving a stale mix behind.
  */
 import { createHash } from "node:crypto";
-import { readFileSync, writeFileSync, rmSync, mkdirSync, readdirSync, copyFileSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync, rmSync, mkdirSync, readdirSync, copyFileSync, statSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
@@ -19,6 +19,23 @@ const TARGETS = [
   join(ROOT, "release", "web"),
 ];
 
+/* Three files carry the release number — package.json, app/core.js and the
+   Android build.gradle — and nothing forces them to agree. This does. A build
+   that shipped 1.0.0 in an APK called 4.0.0 would be a real bug and an easy
+   one to make, so it fails here instead of at a download link. */
+const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+const inApp = /const APP_VERSION = "([^"]+)"/.exec(readFileSync(join(SRC, "core.js"), "utf8"));
+if(!inApp) throw new Error("app/core.js has no APP_VERSION");
+if(inApp[1] !== pkg.version)
+  throw new Error(`version drift: package.json ${pkg.version}, app/core.js ${inApp[1]}`);
+
+const gradlePath = join(ROOT, "android", "app", "build.gradle");
+if(existsSync(gradlePath)){
+  const g = /versionName "([^"]+)"/.exec(readFileSync(gradlePath, "utf8"));
+  if(g && g[1] !== pkg.version)
+    throw new Error(`version drift: package.json ${pkg.version}, build.gradle ${g[1]}`);
+}
+
 const files = readdirSync(SRC).filter(f => statSync(join(SRC, f)).isFile());
 
 /* Hash every shipped file, not just the code, so an icon swap also busts. */
@@ -26,7 +43,7 @@ const h = createHash("sha256");
 for(const f of files.sort()) h.update(f).update(readFileSync(join(SRC, f)));
 const stamp = h.digest("hex").slice(0, 12);
 
-console.log(`build ${stamp} · ${files.length} files`);
+console.log(`4QIAN ${pkg.version} · build ${stamp} · ${files.length} files`);
 
 for(const dest of TARGETS){
   rmSync(dest, {recursive: true, force: true});

@@ -1,6 +1,6 @@
 {
   "name": "4qian-workspace",
-  "version": "4.0.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "Build scripts for the 4QIAN web app and Android app.",

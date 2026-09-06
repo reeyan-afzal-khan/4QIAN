@@ -982,6 +982,7 @@ function renderAbout(){
               : matchMedia("(display-mode: standalone)").matches ? "Installed web app"
               : location.protocol === "file:" ? "Local files" : "Web";
   const rows = [
+    ["Version", esc(APP_VERSION)],
     ["Questions", nf(DATA.q.length)],
     ["Topics", nf(DATA.categories.length)],
     ["Grammar patterns", nf(DATA.frames.length)],

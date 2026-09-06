@@ -5,7 +5,7 @@
  * ANDROID_HOME at your own copies to override.
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, copyFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, copyFileSync, readdirSync, statSync, writeFileSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -53,7 +53,9 @@ if(!apk) throw new Error("Gradle produced no signed APK in " + out);
 
 const dest = join(ROOT, "release", "android");
 mkdirSync(dest, {recursive: true});
-const named = "4QIAN-4.0.0.apk";
+/* Named from package.json, so bumping the release in one place renames the
+   artefact too rather than shipping 1.0.0 in a file called 4.0.0. */
+const named = `4QIAN-${JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).version}.apk`;
 copyFileSync(join(out, apk), join(dest, named));
 const mb = (statSync(join(dest, named)).size / 1048576).toFixed(1);
 console.log(`\ndone -> release/android/${named}  (${mb} MB)`);

@@ -56,6 +56,12 @@ const SKINS = [
 const skinOf = id => SKINS.find(x => x.id === id) || SKINS[0];
 
 const $ = s => document.querySelector(s);
+/* The release this build is. Hard-coded rather than stamped, because app/ has
+   to run straight from a folder with no build step — a __VERSION__ placeholder
+   would be visible to anyone opening index.html directly. build.mjs asserts it
+   against package.json instead, so the two cannot drift silently. */
+const APP_VERSION = "1.0.0";
+
 const LS = "4qian.v1";
 const LS_OLD = "cdg.v3";          // pre-rename key; read once, then retired
 let S = {
